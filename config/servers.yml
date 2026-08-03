@@ -1,23 +1,23 @@
 servers:
   - id: imalweb
     name: IMAL Web
-    api_url: "https://imalweb.premierbank.ke/imal_core_pws/pathservices/rest/processGeneralAccounts/returnGeneralAccountDetails"
-    ssh_host: "192.168.0.82"
+    api_url: "https://xxxxxxxx/weburl/getaccountDetails"
+    ssh_host: "192.X.X.X"
     ssh_port: 22
-    ssh_username: "root"
+    ssh_username: "monitoring_user"
 
   - id: node1
     name: Node 1
-    api_url: "https://192.168.0.81:8443/imal_core_pws/pathservices/rest/processGeneralAccounts/returnGeneralAccountDetails"
-    ssh_host: "192.168.0.81"
+    api_url: "https://xxxxxxxx/weburl/getaccountDetails"
+    ssh_host: "192.X.X.X"
     ssh_port: 22
-    ssh_username: "imaljava"
+    ssh_username: "monitoring_user"
 
   - id: node2
     name: Node 2
-    api_url: "https://192.168.0.83:8443/imal_core_pws/pathservices/rest/processGeneralAccounts/returnGeneralAccountDetails"
-    ssh_host: "192.168.0.83"
+    api_url: "https://xxxxxxxx/weburl/getaccountDetails"
+    ssh_host: "192.X.X.X"
     ssh_port: 22
-    ssh_username: "imaljava"
+    ssh_username: "monitoring_user"
 
     
