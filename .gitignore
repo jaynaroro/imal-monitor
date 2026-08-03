@@ -1,0 +1,30 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Virtual Environment
+myvenv/
+venv/
+.env
+
+# IDE
+.vscode/
+.idea/
+
+# Logs
+*.log
+
+# Python cache
+.pytest_cache/
+
+# Docker
+*.tar
+
+# Secrets
+keys/
+config/account_request.json
+
+# OS
+.DS_Store
+Thumbs.db

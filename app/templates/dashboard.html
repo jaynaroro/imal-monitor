@@ -1,0 +1,621 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>{{ title }}</title>
+
+    <link
+        rel="stylesheet"
+        href="/static/dashboard.css"
+    >
+</head>
+
+<body>
+    <header class="page-header">
+        <div class="header-copy">
+            <p class="eyebrow">
+                Infrastructure monitoring
+            </p>
+
+            <h1>{{ title }}</h1>
+
+            <p class="subtitle">
+                Connectivity and system health for IMAL servers
+            </p>
+        </div>
+
+        <div class="header-actions">
+            <div class="refresh-information">
+                <div class="application-status">
+                    <span class="status-dot"></span>
+                    Dashboard running
+                </div>
+
+                <div class="refresh-schedule">
+                    <span>
+                        Auto refresh:
+                        {{ scheduler.interval_minutes }} minutes
+                    </span>
+
+                    <span id="next-refresh-label">
+                        Next check:
+                        {{ scheduler.next_run_at or "Not scheduled" }}
+                    </span>
+                </div>
+            </div>
+
+            <button
+                id="refresh-all-button"
+                class="refresh-button"
+                type="button"
+                onclick="refreshAllServers()"
+            >
+                Refresh all
+            </button>
+        </div>
+    </header>
+
+    <main class="dashboard-container">
+        <section class="server-grid">
+
+            {% for server_id, server in servers.items() %}
+            <article class="server-card">
+
+                <div class="server-card-header">
+                    <div>
+                        <p class="server-id">
+                            {{ server_id }}
+                        </p>
+
+                        <h2>
+                            {{ server.name }}
+                        </h2>
+                    </div>
+
+                    <div class="server-header-actions">
+                        <span class="status {{ server.api.status }}">
+                            {{ server.api.status }}
+                        </span>
+
+                        <button
+                            id="refresh-{{ server_id }}"
+                            class="server-refresh-button"
+                            type="button"
+                            onclick="refreshServer('{{ server_id }}')"
+                            title="Refresh {{ server.name }}"
+                        >
+                            Refresh
+                        </button>
+                    </div>
+                </div>
+
+                <div class="metric-section">
+                    <div class="section-title">
+                        <h3>IMAL API</h3>
+
+                        <span class="status {{ server.api.status }}">
+                            {{ server.api.status }}
+                        </span>
+                    </div>
+
+                    <div class="metric-row">
+                        <span>Status description</span>
+
+                        <strong>
+                            {{ server.api.status_desc or "Pending" }}
+                        </strong>
+                    </div>
+
+                    <div class="metric-row">
+                        <span>HTTP status</span>
+
+                        <strong>
+                            {{ server.api.http_status or "-" }}
+                        </strong>
+                    </div>
+
+                    <div class="metric-row">
+                        <span>Response time</span>
+
+                        <strong>
+                            {% if server.api.response_time_ms is not none %}
+                                {{ server.api.response_time_ms }} ms
+                            {% else %}
+                                -
+                            {% endif %}
+                        </strong>
+                    </div>
+
+                    <div class="metric-row">
+                        <span>Last checked</span>
+
+                        <strong>
+                            {{ server.api.checked_at or "Not checked" }}
+                        </strong>
+                    </div>
+
+                    {% if server.api.error %}
+                    <div class="error-box">
+                        {{ server.api.error }}
+                    </div>
+                    {% endif %}
+                </div>
+
+                <div class="metric-section">
+                    <div class="section-title">
+                        <h3>Server Resources</h3>
+
+                        <span class="status {{ server.system.status }}">
+                            {{ server.system.status }}
+                        </span>
+                    </div>
+
+                    <div class="metric-row">
+                        <span>SSH status</span>
+
+                        <strong>
+                            {{ server.system.ssh_status or "Pending" }}
+                        </strong>
+                    </div>
+
+                    {% if server.system.cpu %}
+                    <div class="resource-block">
+                        <div class="resource-label">
+                            <span>CPU</span>
+
+                            <strong>
+                                {{ server.system.cpu.percent }}%
+                            </strong>
+                        </div>
+
+                        <div class="progress-track">
+                            <div
+                                class="progress-bar
+                                {% if server.system.cpu.percent >= 90 %}
+                                    critical-bar
+                                {% elif server.system.cpu.percent >= 75 %}
+                                    warning-bar
+                                {% else %}
+                                    healthy-bar
+                                {% endif %}"
+                                style="width: {{ server.system.cpu.percent }}%"
+                            ></div>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    {% if server.system.memory %}
+                    <div class="resource-block">
+                        <div class="resource-label">
+                            <span>Memory</span>
+
+                            <strong>
+                                {{ server.system.memory.percent }}%
+                            </strong>
+                        </div>
+
+                        <div class="progress-track">
+                            <div
+                                class="progress-bar
+                                {% if server.system.memory.percent >= 90 %}
+                                    critical-bar
+                                {% elif server.system.memory.percent >= 80 %}
+                                    warning-bar
+                                {% else %}
+                                    healthy-bar
+                                {% endif %}"
+                                style="width: {{ server.system.memory.percent }}%"
+                            ></div>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    {% if server.system.highest_filesystem %}
+                    <div class="resource-block">
+                        <div class="resource-label">
+                            <span>
+                                Highest disk:
+                                {{ server.system.highest_filesystem.mount_point }}
+                            </span>
+
+                            <strong>
+                                {{
+                                    server.system.highest_filesystem.usage_percent
+                                }}%
+                            </strong>
+                        </div>
+
+                        <div class="progress-track">
+                            <div
+                                class="progress-bar
+                                {% if server.system.highest_filesystem.usage_percent >= 90 %}
+                                    critical-bar
+                                {% elif server.system.highest_filesystem.usage_percent >= 80 %}
+                                    warning-bar
+                                {% else %}
+                                    healthy-bar
+                                {% endif %}"
+                                style="
+                                    width:
+                                    {{
+                                        server.system.highest_filesystem.usage_percent
+                                    }}%
+                                "
+                            ></div>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    {% if server.system.load_average %}
+                    <div class="metric-row">
+                        <span>Load average</span>
+
+                        <strong>
+                            {{ server.system.load_average.load_1 }},
+                            {{ server.system.load_average.load_5 }},
+                            {{ server.system.load_average.load_15 }}
+                        </strong>
+                    </div>
+                    {% endif %}
+
+                    {% if server.system.uptime %}
+                    <div class="metric-row">
+                        <span>Uptime</span>
+
+                        <strong>
+                            {{ server.system.uptime.days }} days
+                        </strong>
+                    </div>
+                    {% endif %}
+
+                    <div class="metric-row">
+                        <span>Last checked</span>
+
+                        <strong>
+                            {{ server.system.checked_at or "Not checked" }}
+                        </strong>
+                    </div>
+
+                    {% if server.system.error %}
+                    <div class="error-box">
+                        {{ server.system.error }}
+                    </div>
+                    {% endif %}
+                </div>
+
+                {% if server.system.filesystems %}
+                <div class="metric-section">
+                    <div class="section-title">
+                        <h3>Filesystems</h3>
+                    </div>
+
+                    <div class="filesystem-list">
+                        {% for filesystem in server.system.filesystems %}
+                        <div class="filesystem-item">
+                            <div class="filesystem-heading">
+                                <span>
+                                    {{ filesystem.mount_point }}
+                                </span>
+
+                                <strong>
+                                    {{ filesystem.usage_percent }}%
+                                </strong>
+                            </div>
+
+                            <div class="progress-track">
+                                <div
+                                    class="progress-bar
+                                    {% if filesystem.usage_percent >= 90 %}
+                                        critical-bar
+                                    {% elif filesystem.usage_percent >= 80 %}
+                                        warning-bar
+                                    {% else %}
+                                        healthy-bar
+                                    {% endif %}"
+                                    style="
+                                        width:
+                                        {{ filesystem.usage_percent }}%
+                                    "
+                                ></div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+
+            </article>
+            {% endfor %}
+
+        </section>
+    </main>
+
+    <script>
+        const STATUS_POLL_INTERVAL_MS = 30000;
+
+        let lastKnownCheckTimestamp =
+            getLatestCheckTimestamp();
+
+
+        function getLatestCheckTimestamp() {
+            const timestamps = [];
+
+            {% for server_id, server in servers.items() %}
+                {% if server.api.checked_at %}
+                    timestamps.push(
+                        "{{ server.api.checked_at }}"
+                    );
+                {% endif %}
+
+                {% if server.system.checked_at %}
+                    timestamps.push(
+                        "{{ server.system.checked_at }}"
+                    );
+                {% endif %}
+            {% endfor %}
+
+            if (timestamps.length === 0) {
+                return null;
+            }
+
+            timestamps.sort();
+
+            return timestamps[
+                timestamps.length - 1
+            ];
+        }
+
+
+        function getLatestTimestampFromStatus(data) {
+            const timestamps = [];
+
+            Object.values(
+                data.servers || {}
+            ).forEach((server) => {
+                if (server.api?.checked_at) {
+                    timestamps.push(
+                        server.api.checked_at
+                    );
+                }
+
+                if (server.system?.checked_at) {
+                    timestamps.push(
+                        server.system.checked_at
+                    );
+                }
+            });
+
+            if (timestamps.length === 0) {
+                return null;
+            }
+
+            timestamps.sort();
+
+            return timestamps[
+                timestamps.length - 1
+            ];
+        }
+
+
+        function setButtonLoading(
+            button,
+            isLoading,
+            loadingText = "Checking..."
+        ) {
+            if (!button) {
+                return;
+            }
+
+            if (isLoading) {
+                button.dataset.originalText =
+                    button.textContent.trim();
+
+                button.disabled = true;
+                button.textContent = loadingText;
+
+                return;
+            }
+
+            button.disabled = false;
+            button.textContent =
+                button.dataset.originalText
+                || "Refresh";
+        }
+
+
+        async function runRefresh(
+            url,
+            button
+        ) {
+            setButtonLoading(
+                button,
+                true
+            );
+
+            try {
+                const response = await fetch(
+                    url,
+                    {
+                        method: "POST",
+                        headers: {
+                            "Accept": "application/json"
+                        }
+                    }
+                );
+
+                if (!response.ok) {
+                    let errorMessage =
+                        `HTTP ${response.status}`;
+
+                    try {
+                        const errorData =
+                            await response.json();
+
+                        if (errorData.detail) {
+                            errorMessage =
+                                errorData.detail;
+                        }
+                    } catch (_) {
+                        // Keep the default HTTP message.
+                    }
+
+                    throw new Error(errorMessage);
+                }
+
+                await response.json();
+
+                window.location.reload();
+
+            } catch (error) {
+                console.error(
+                    "Monitoring refresh failed:",
+                    error
+                );
+
+                alert(
+                    `Refresh failed: ${error.message}`
+                );
+
+                setButtonLoading(
+                    button,
+                    false
+                );
+            }
+        }
+
+
+        function refreshAllServers() {
+            const button =
+                document.getElementById(
+                    "refresh-all-button"
+                );
+
+            runRefresh(
+                "/api/check",
+                button
+            );
+        }
+
+
+        function refreshServer(serverId) {
+            const button =
+                document.getElementById(
+                    `refresh-${serverId}`
+                );
+
+            runRefresh(
+                `/api/check/${serverId}`,
+                button
+            );
+        }
+
+
+        async function pollForUpdatedStatus() {
+            try {
+                const response = await fetch(
+                    "/api/status",
+                    {
+                        method: "GET",
+                        headers: {
+                            "Accept": "application/json"
+                        },
+                        cache: "no-store"
+                    }
+                );
+
+                if (!response.ok) {
+                    return;
+                }
+
+                const data =
+                    await response.json();
+
+                updateNextRefreshLabel(
+                    data.scheduler
+                );
+
+                const latestTimestamp =
+                    getLatestTimestampFromStatus(
+                        data
+                    );
+
+                if (
+                    latestTimestamp
+                    && lastKnownCheckTimestamp
+                    && latestTimestamp
+                        !== lastKnownCheckTimestamp
+                ) {
+                    window.location.reload();
+                    return;
+                }
+
+                if (
+                    latestTimestamp
+                    && !lastKnownCheckTimestamp
+                ) {
+                    lastKnownCheckTimestamp =
+                        latestTimestamp;
+
+                    window.location.reload();
+                }
+
+            } catch (error) {
+                console.warn(
+                    "Could not poll monitoring status:",
+                    error
+                );
+            }
+        }
+
+
+        function updateNextRefreshLabel(
+            scheduler
+        ) {
+            const label =
+                document.getElementById(
+                    "next-refresh-label"
+                );
+
+            if (!label || !scheduler) {
+                return;
+            }
+
+            if (!scheduler.running) {
+                label.textContent =
+                    "Automatic checks stopped";
+
+                return;
+            }
+
+            if (!scheduler.next_run_at) {
+                label.textContent =
+                    "Next check: pending";
+
+                return;
+            }
+
+            const nextRun =
+                new Date(
+                    scheduler.next_run_at
+                );
+
+            label.textContent =
+                `Next check: ${
+                    nextRun.toLocaleString()
+                }`;
+        }
+
+
+        window.setInterval(
+            pollForUpdatedStatus,
+            STATUS_POLL_INTERVAL_MS
+        );
+    </script>
+</body>
+</html>
