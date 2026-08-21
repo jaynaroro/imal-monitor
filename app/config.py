@@ -44,7 +44,7 @@ IMAL_VERIFY_SSL = get_boolean_environment_variable(
 
 SSH_PRIVATE_KEY = os.getenv(
     "SSH_PRIVATE_KEY",
-    "/run/secrets/-++321ssaP",
+    "/run/secrets/monitoring_ed25519",
 )
 
 SSH_KNOWN_HOSTS = os.getenv(
@@ -66,7 +66,10 @@ AUTO_REFRESH_ENABLED = get_boolean_environment_variable(
 )
 
 AUTO_REFRESH_MINUTES = int(
-    os.getenv("AUTO_REFRESH_MINUTES", "15")
+    os.getenv(
+        "AUTO_REFRESH_MINUTES",
+        "15",
+    )
 )
 
 if AUTO_REFRESH_MINUTES < 1:

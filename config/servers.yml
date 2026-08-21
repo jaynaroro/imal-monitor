@@ -6,12 +6,22 @@ servers:
     ssh_port: 22
     ssh_username: "monitoring_user"
 
+    application_control:
+      enabled: false
+
   - id: node1
     name: Node 1
     api_url: "https://xxxxxxxx/weburl/getaccountDetails"
     ssh_host: "192.X.X.X"
     ssh_port: 22
     ssh_username: "monitoring_user"
+
+    application_control:
+      enabled: true
+      tomcat_home: "/imal/TomcatNode1"
+      process_match: "Dcatalina.base=/imal/TomcatNode1"
+      shutdown_timeout: 30
+      startup_timeout: 60
 
   - id: node2
     name: Node 2
@@ -20,4 +30,11 @@ servers:
     ssh_port: 22
     ssh_username: "monitoring_user"
 
-    
+
+    application_control:
+      enabled: true
+      tomcat_home: "/imal/TomcatNode2"
+      process_match: "Dcatalina.base=/imal/TomcatNode2"
+      shutdown_timeout: 30
+      startup_timeout: 60
+

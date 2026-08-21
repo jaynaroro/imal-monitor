@@ -2,6 +2,7 @@
 __pycache__/
 *.py[cod]
 *.pyo
+*.pyc
 
 # Virtual Environment
 myvenv/
@@ -24,7 +25,13 @@ venv/
 # Secrets
 keys/
 config/account_request.json
+*.pem
+*.key
 
 # OS
 .DS_Store
 Thumbs.db
+
+# Generated deployment packages
+imal-monitor-*.tar.gz
+imal-monitor-deploy-*.tar.gz

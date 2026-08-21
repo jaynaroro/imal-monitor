@@ -1,6 +1,6 @@
 from copy import deepcopy
 from threading import Lock
-from typing import Any
+from typing import Any, Optional
 
 
 _cache_lock = Lock()
@@ -65,7 +65,7 @@ def get_cache() -> dict[str, dict[str, Any]]:
 
 def get_server_cache(
     server_id: str,
-) -> dict[str, Any] | None:
+) -> Optional[dict[str, Any]]:
     with _cache_lock:
         server = _monitor_cache.get(server_id)
 

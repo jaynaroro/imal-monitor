@@ -23,20 +23,21 @@
     --pending: #475467;
     --pending-background: #f2f4f7;
 
-    --primary: #2563eb;
-    --primary-dark: #1d4ed8;
-    --primary-light: #eff6ff;
+    --blue: #2563eb;
+    --blue-hover: #1d4ed8;
+    --blue-background: #eff6ff;
+    --blue-background-hover: #dbeafe;
 
-    --shadow:
-        0 10px 35px rgba(16, 24, 40, 0.08);
+    --shadow: 0 10px 35px rgba(16, 24, 40, 0.08);
 }
+
+
+/* ==================================================
+   Base
+================================================== */
 
 * {
     box-sizing: border-box;
-}
-
-html {
-    min-height: 100%;
 }
 
 body {
@@ -51,13 +52,18 @@ body {
         "Segoe UI",
         sans-serif;
 
-    background: var(--background);
     color: var(--text-primary);
+    background: var(--background);
 }
 
 button {
-    font: inherit;
+    font-family: inherit;
 }
+
+
+/* ==================================================
+   Page header
+================================================== */
 
 .page-header {
     display: flex;
@@ -67,7 +73,7 @@ button {
 
     padding: 2.5rem 5%;
 
-    color: white;
+    color: #ffffff;
 
     background:
         linear-gradient(
@@ -75,10 +81,6 @@ button {
             #101828 0%,
             #203a64 100%
         );
-}
-
-.header-copy {
-    min-width: 0;
 }
 
 .eyebrow,
@@ -107,40 +109,33 @@ h3 {
 
 h1 {
     margin-bottom: 0;
-
-    font-size:
-        clamp(1.8rem, 4vw, 2.7rem);
+    font-size: clamp(1.8rem, 4vw, 2.7rem);
 }
 
 h2 {
     margin-bottom: 0;
-
     font-size: 1.3rem;
 }
 
 h3 {
     margin-bottom: 0;
-
     font-size: 0.95rem;
 }
 
 .subtitle {
     margin: 0.7rem 0 0;
-
     color: #d0d5dd;
 }
+
+
+/* ==================================================
+   Header actions
+================================================== */
 
 .header-actions {
     display: flex;
     align-items: center;
     gap: 1rem;
-}
-
-.refresh-information {
-    display: flex;
-    align-items: flex-end;
-    flex-direction: column;
-    gap: 0.5rem;
 }
 
 .application-status {
@@ -150,17 +145,13 @@ h3 {
 
     padding: 0.7rem 1rem;
 
-    border:
-        1px solid
-        rgba(255, 255, 255, 0.2);
-
+    border: 1px solid rgba(255, 255, 255, 0.2);
     border-radius: 999px;
 
     font-size: 0.9rem;
     white-space: nowrap;
 
-    background:
-        rgba(255, 255, 255, 0.08);
+    background: rgba(255, 255, 255, 0.08);
 }
 
 .status-dot {
@@ -176,71 +167,57 @@ h3 {
         rgba(74, 222, 128, 0.15);
 }
 
-.refresh-schedule {
-    display: flex;
-    align-items: flex-end;
-    flex-direction: column;
-    gap: 0.2rem;
 
-    font-size: 0.72rem;
-    color: #d0d5dd;
-}
-
-.refresh-button,
-.server-refresh-button {
-    border: 0;
-    border-radius: 10px;
-
-    font-family: inherit;
-    font-weight: 700;
-
-    cursor: pointer;
-
-    transition:
-        transform 0.15s ease,
-        opacity 0.15s ease,
-        background-color 0.15s ease,
-        box-shadow 0.15s ease;
-}
+/* ==================================================
+   Refresh all button
+================================================== */
 
 .refresh-button {
     padding: 0.78rem 1.05rem;
 
+    border: 0;
+    border-radius: 10px;
+
     color: #172033;
     background: #ffffff;
+
+    font-size: 0.85rem;
+    font-weight: 700;
+
+    cursor: pointer;
 
     box-shadow:
         0 4px 14px
         rgba(0, 0, 0, 0.12);
-}
 
-.server-refresh-button {
-    padding: 0.45rem 0.7rem;
-
-    font-size: 0.72rem;
-
-    color: var(--primary-dark);
-    background: var(--primary-light);
-}
-
-.refresh-button:hover,
-.server-refresh-button:hover {
-    transform: translateY(-1px);
+    transition:
+        transform 0.15s ease,
+        box-shadow 0.15s ease,
+        opacity 0.15s ease;
 }
 
 .refresh-button:hover {
+    transform: translateY(-1px);
+
     box-shadow:
         0 6px 18px
         rgba(0, 0, 0, 0.16);
 }
 
-.refresh-button:disabled,
-.server-refresh-button:disabled {
-    cursor: wait;
+.refresh-button:active {
+    transform: translateY(0);
+}
 
+.refresh-button:disabled {
+    cursor: wait;
     opacity: 0.6;
     transform: none;
 }
+
+
+/* ==================================================
+   Dashboard layout
+================================================== */
 
 .dashboard-container {
     width: min(1500px, 94%);
@@ -255,8 +232,14 @@ h3 {
         repeat(3, minmax(0, 1fr));
 
     gap: 1.5rem;
+
     align-items: start;
 }
+
+
+/* ==================================================
+   Server cards
+================================================== */
 
 .server-card {
     overflow: hidden;
@@ -265,6 +248,7 @@ h3 {
     border-radius: 18px;
 
     background: var(--surface);
+
     box-shadow: var(--shadow);
 }
 
@@ -276,57 +260,66 @@ h3 {
 
     padding: 1.4rem 1.5rem;
 
-    border-bottom:
-        1px solid var(--border);
+    border-bottom: 1px solid var(--border);
 }
 
 .server-header-actions {
     display: flex;
     align-items: center;
-    gap: 0.7rem;
+    justify-content: flex-end;
+
+    gap: 0.6rem;
+
+    flex-wrap: wrap;
 }
 
-.metric-section {
-    padding: 1.35rem 1.5rem;
 
-    border-bottom:
-        1px solid var(--border);
+/* ==================================================
+   Per-server Refresh button
+================================================== */
+
+.server-refresh-button {
+    padding: 0.45rem 0.75rem;
+
+    border: 0;
+    border-radius: 10px;
+
+    color: var(--blue);
+    background: var(--blue-background);
+
+    font-size: 0.72rem;
+    font-weight: 700;
+
+    cursor: pointer;
+
+    transition:
+        background-color 0.15s ease,
+        color 0.15s ease,
+        transform 0.15s ease,
+        opacity 0.15s ease;
 }
 
-.metric-section:last-child {
-    border-bottom: 0;
+.server-refresh-button:hover {
+    color: var(--blue-hover);
+    background: var(--blue-background-hover);
+
+    transform: translateY(-1px);
 }
 
-.section-title {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 1rem;
-
-    margin-bottom: 1rem;
+.server-refresh-button:active {
+    transform: translateY(0);
 }
 
-.metric-row {
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: 1rem;
-
-    padding: 0.55rem 0;
-
-    font-size: 0.88rem;
+.server-refresh-button:disabled {
+    cursor: wait;
+    opacity: 0.6;
+    transform: none;
 }
 
-.metric-row span {
-    color: var(--text-secondary);
-}
 
-.metric-row strong {
-    max-width: 65%;
-
-    text-align: right;
-    overflow-wrap: anywhere;
-}
+/* ==================================================
+   Status badges
+================================================== */
 
 .status {
     display: inline-flex;
@@ -368,6 +361,60 @@ h3 {
     background: var(--pending-background);
 }
 
+
+/* ==================================================
+   Metric sections
+================================================== */
+
+.metric-section {
+    padding: 1.35rem 1.5rem;
+
+    border-bottom: 1px solid var(--border);
+}
+
+.metric-section:last-child {
+    border-bottom: 0;
+}
+
+.section-title {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    gap: 1rem;
+
+    margin-bottom: 1rem;
+}
+
+.metric-row {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+
+    gap: 1rem;
+
+    padding: 0.55rem 0;
+
+    font-size: 0.88rem;
+}
+
+.metric-row span {
+    color: var(--text-secondary);
+}
+
+.metric-row strong {
+    max-width: 65%;
+
+    text-align: right;
+
+    overflow-wrap: anywhere;
+}
+
+
+/* ==================================================
+   Resource usage
+================================================== */
+
 .resource-block {
     margin: 1rem 0;
 }
@@ -377,6 +424,7 @@ h3 {
     display: flex;
     align-items: center;
     justify-content: space-between;
+
     gap: 1rem;
 
     margin-bottom: 0.45rem;
@@ -388,6 +436,11 @@ h3 {
 .filesystem-heading span {
     color: var(--text-secondary);
 }
+
+
+/* ==================================================
+   Progress bars
+================================================== */
 
 .progress-track {
     overflow: hidden;
@@ -406,11 +459,15 @@ h3 {
 
     border-radius: inherit;
 
-    transition:
-        width 0.3s ease;
+    background:
+        linear-gradient(
+            90deg,
+            #2563eb,
+            #3b82f6
+        );
 }
 
-.healthy-bar {
+.progress-bar.healthy-bar {
     background:
         linear-gradient(
             90deg,
@@ -419,16 +476,16 @@ h3 {
         );
 }
 
-.warning-bar {
+.progress-bar.warning-bar {
     background:
         linear-gradient(
             90deg,
-            #d97706,
-            #f59e0b
+            #f59e0b,
+            #fbbf24
         );
 }
 
-.critical-bar {
+.progress-bar.critical-bar {
     background:
         linear-gradient(
             90deg,
@@ -436,6 +493,11 @@ h3 {
             #ef4444
         );
 }
+
+
+/* ==================================================
+   Filesystems
+================================================== */
 
 .filesystem-list {
     display: grid;
@@ -451,8 +513,14 @@ h3 {
     background: var(--surface-muted);
 }
 
+
+/* ==================================================
+   Errors
+================================================== */
+
 .error-box {
     margin-top: 1rem;
+
     padding: 0.85rem 1rem;
 
     border: 1px solid #fecdca;
@@ -463,8 +531,231 @@ h3 {
 
     font-size: 0.82rem;
     line-height: 1.5;
+
     overflow-wrap: anywhere;
 }
+
+
+/* ==================================================
+   Tomcat restart button
+================================================== */
+
+.restart-button {
+    padding: 0.45rem 0.75rem;
+
+    border: 1px solid #fed7aa;
+    border-radius: 10px;
+
+    color: #9a3412;
+    background: #fff7ed;
+
+    font-size: 0.72rem;
+    font-weight: 700;
+
+    cursor: pointer;
+
+    transition:
+        background-color 0.15s ease,
+        transform 0.15s ease,
+        opacity 0.15s ease;
+}
+
+.restart-button:hover {
+    background: #ffedd5;
+
+    transform: translateY(-1px);
+}
+
+.restart-button:active {
+    transform: translateY(0);
+}
+
+.restart-button:disabled {
+    cursor: wait;
+
+    opacity: 0.6;
+
+    transform: none;
+}
+
+
+/* ==================================================
+   Restart result message
+================================================== */
+
+.restart-result {
+    padding: 0.75rem 1.5rem;
+
+    border-bottom: 1px solid var(--border);
+
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+.restart-result.restarting {
+    color: #92400e;
+    background: #fffbeb;
+}
+
+.restart-result.success {
+    color: #166534;
+    background: #f0fdf4;
+}
+
+.restart-result.failure {
+    color: #991b1b;
+    background: #fef2f2;
+}
+
+
+/* ==================================================
+   Generic hidden element
+================================================== */
+
+.hidden {
+    display: none !important;
+}
+
+
+/* ==================================================
+   Restart confirmation modal
+================================================== */
+
+.modal-overlay {
+    position: fixed;
+    inset: 0;
+
+    z-index: 1000;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    padding: 1.5rem;
+
+    background:
+        rgba(15, 23, 42, 0.62);
+
+    backdrop-filter: blur(3px);
+}
+
+.restart-modal {
+    width: min(440px, 100%);
+
+    padding: 2rem;
+
+    border-radius: 18px;
+
+    color: var(--text-primary);
+    background: #ffffff;
+
+    box-shadow:
+        0 30px 80px
+        rgba(15, 23, 42, 0.28);
+}
+
+.restart-modal-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    width: 46px;
+    height: 46px;
+
+    margin-bottom: 1rem;
+
+    border-radius: 50%;
+
+    color: #9a3412;
+    background: #ffedd5;
+
+    font-size: 1.3rem;
+    font-weight: 900;
+}
+
+.restart-modal h3 {
+    margin: 0 0 0.8rem;
+
+    font-size: 1.2rem;
+}
+
+.restart-modal p {
+    margin: 0.6rem 0;
+
+    color: var(--text-secondary);
+
+    font-size: 0.9rem;
+    line-height: 1.55;
+}
+
+.restart-warning {
+    padding: 0.85rem;
+
+    border: 1px solid #fed7aa;
+    border-radius: 10px;
+
+    color: #9a3412 !important;
+    background: #fff7ed;
+}
+
+.restart-modal-actions {
+    display: flex;
+    justify-content: flex-end;
+
+    gap: 0.75rem;
+
+    margin-top: 1.5rem;
+}
+
+.modal-cancel-button,
+.modal-restart-button {
+    padding: 0.7rem 1rem;
+
+    border-radius: 10px;
+
+    font-family: inherit;
+    font-weight: 700;
+
+    cursor: pointer;
+
+    transition:
+        background-color 0.15s ease,
+        transform 0.15s ease,
+        opacity 0.15s ease;
+}
+
+.modal-cancel-button {
+    border: 1px solid var(--border);
+
+    color: var(--text-primary);
+    background: #ffffff;
+}
+
+.modal-cancel-button:hover {
+    background: var(--surface-muted);
+}
+
+.modal-restart-button {
+    border: 1px solid #ea580c;
+
+    color: #ffffff;
+    background: #ea580c;
+}
+
+.modal-restart-button:hover {
+    background: #c2410c;
+}
+
+.modal-cancel-button:disabled,
+.modal-restart-button:disabled {
+    cursor: wait;
+    opacity: 0.6;
+}
+
+
+/* ==================================================
+   Responsive
+================================================== */
 
 @media (max-width: 1100px) {
     .server-grid {
@@ -472,7 +763,7 @@ h3 {
     }
 }
 
-@media (max-width: 800px) {
+@media (max-width: 700px) {
     .page-header {
         align-items: flex-start;
         flex-direction: column;
@@ -483,23 +774,16 @@ h3 {
     .header-actions {
         width: 100%;
 
-        align-items: flex-start;
+        align-items: stretch;
         flex-direction: column;
-    }
-
-    .refresh-information,
-    .refresh-schedule {
-        align-items: flex-start;
     }
 
     .application-status {
         white-space: normal;
     }
-}
 
-@media (max-width: 600px) {
-    .dashboard-container {
-        width: 92%;
+    .refresh-button {
+        width: 100%;
     }
 
     .server-card-header {
@@ -508,11 +792,11 @@ h3 {
 
     .server-header-actions {
         align-items: flex-end;
-        flex-direction: column;
     }
 
     .metric-row {
         flex-direction: column;
+
         gap: 0.3rem;
     }
 
@@ -521,8 +805,32 @@ h3 {
 
         text-align: left;
     }
+}
 
-    .refresh-button {
+@media (max-width: 600px) {
+    .server-card-header {
+        flex-direction: column;
+    }
+
+    .server-header-actions {
+        width: 100%;
+
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .server-header-actions .status,
+    .server-refresh-button,
+    .restart-button {
+        width: 100%;
+    }
+
+    .restart-modal-actions {
+        flex-direction: column-reverse;
+    }
+
+    .modal-cancel-button,
+    .modal-restart-button {
         width: 100%;
     }
 }

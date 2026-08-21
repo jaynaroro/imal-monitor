@@ -1,4 +1,5 @@
 import logging
+
 from contextlib import asynccontextmanager
 from datetime import datetime
 from zoneinfo import ZoneInfo
@@ -14,15 +15,18 @@ from app.cache import (
     get_server_cache,
     initialize_cache,
 )
+
 from app.config import (
     AUTO_REFRESH_ENABLED,
     load_servers,
 )
+
 from app.jobs.scheduler import (
     get_scheduler_status,
     start_scheduler,
     stop_scheduler,
 )
+
 from app.services.monitor import (
     check_all_server_apis,
     check_all_server_systems,
@@ -30,6 +34,10 @@ from app.services.monitor import (
     check_single_server_all,
     check_single_server_api,
     check_single_server_system,
+)
+
+from app.services.tomcat_control import (
+    restart_tomcat,
 )
 
 
@@ -43,17 +51,24 @@ logging.basicConfig(
 
 logger = logging.getLogger(__name__)
 
-NAIROBI_TIMEZONE = ZoneInfo("Africa/Nairobi")
+
+NAIROBI_TIMEZONE = ZoneInfo(
+    "Africa/Nairobi"
+)
 
 
 servers = load_servers()
 
-initialize_cache(servers)
+initialize_cache(
+    servers
+)
 
 
-def find_server(server_id: str) -> dict:
+def find_server(
+    server_id: str,
+) -> dict:
     """
-    Find a configured server by its ID.
+    Find a configured server using its ID.
 
     Raises HTTP 404 if the server does not exist.
     """
@@ -70,17 +85,22 @@ def find_server(server_id: str) -> dict:
     if server is None:
         raise HTTPException(
             status_code=404,
-            detail=f"Server '{server_id}' was not found",
+            detail=(
+                f"Server '{server_id}' "
+                "was not found"
+            ),
         )
 
     return server
 
 
 @asynccontextmanager
-async def lifespan(app: FastAPI):
+async def lifespan(
+    app: FastAPI,
+):
     """
-    Run initial checks, start the scheduler, and stop it cleanly
-    during application shutdown.
+    Run an initial monitoring check and manage
+    the automatic background scheduler.
     """
 
     logger.info(
@@ -88,7 +108,9 @@ async def lifespan(app: FastAPI):
     )
 
     try:
-        check_all_servers(servers)
+        check_all_servers(
+            servers
+        )
 
     except Exception:
         logger.exception(
@@ -97,7 +119,9 @@ async def lifespan(app: FastAPI):
 
     if AUTO_REFRESH_ENABLED:
         try:
-            start_scheduler(servers)
+            start_scheduler(
+                servers
+            )
 
         except Exception:
             logger.exception(
@@ -126,14 +150,16 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     title="IMAL Infrastructure Monitor",
-    version="1.1.0",
+    version="1.2.0",
     lifespan=lifespan,
 )
 
 
 app.mount(
     "/static",
-    StaticFiles(directory="app/static"),
+    StaticFiles(
+        directory="app/static"
+    ),
     name="static",
 )
 
@@ -146,32 +172,63 @@ templates = Jinja2Templates(
 @app.get("/health")
 def health_check() -> dict:
     """
-    Health endpoint used by Docker and external monitoring.
+    Health endpoint for Docker and external monitoring.
     """
 
     return {
         "status": "healthy",
-        "application": "IMAL Infrastructure Monitor",
+        "application": (
+            "IMAL Infrastructure Monitor"
+        ),
         "timestamp": datetime.now(
             NAIROBI_TIMEZONE
-        ).isoformat(timespec="seconds"),
-        "scheduler": get_scheduler_status(),
+        ).isoformat(
+            timespec="seconds"
+        ),
+        "scheduler": (
+            get_scheduler_status()
+        ),
     }
 
 
-@app.get("/", response_class=HTMLResponse)
-def dashboard(request: Request):
+@app.get(
+    "/",
+    response_class=HTMLResponse,
+)
+def dashboard(
+    request: Request,
+):
     """
-    Render the monitoring dashboard using the latest cached results.
+    Render the monitoring dashboard using
+    the current cached values.
     """
+
+    controllable_server_ids = {
+        server["id"]
+        for server in servers
+        if server.get(
+            "application_control",
+            {},
+        ).get(
+            "enabled",
+            False,
+        )
+    }
 
     return templates.TemplateResponse(
         request=request,
         name="dashboard.html",
         context={
-            "title": "IMAL Infrastructure Monitor",
+            "title": (
+                "IMAL Infrastructure Monitor"
+            ),
             "servers": get_cache(),
-            "scheduler": get_scheduler_status(),
+            "scheduler": (
+                get_scheduler_status()
+            ),
+            "controllable_server_ids": (
+                controllable_server_ids
+            ),
         },
     )
 
@@ -179,34 +236,47 @@ def dashboard(request: Request):
 @app.get("/api/status")
 def get_all_statuses() -> dict:
     """
-    Return cached API and system status for all configured servers.
+    Return the latest cached API and system
+    status for all servers.
     """
 
     return {
         "servers": get_cache(),
-        "scheduler": get_scheduler_status(),
+        "scheduler": (
+            get_scheduler_status()
+        ),
         "retrieved_at": datetime.now(
             NAIROBI_TIMEZONE
-        ).isoformat(timespec="seconds"),
+        ).isoformat(
+            timespec="seconds"
+        ),
     }
 
 
-@app.get("/api/status/{server_id}")
+@app.get(
+    "/api/status/{server_id}"
+)
 def get_single_server_status(
     server_id: str,
 ) -> dict:
     """
-    Return the cached status of one server.
+    Return the latest cached status
+    for one server.
     """
 
-    cached_server = get_server_cache(
-        server_id
+    cached_server = (
+        get_server_cache(
+            server_id
+        )
     )
 
     if cached_server is None:
         raise HTTPException(
             status_code=404,
-            detail=f"Server '{server_id}' was not found",
+            detail=(
+                f"Server '{server_id}' "
+                "was not found"
+            ),
         )
 
     return cached_server
@@ -215,7 +285,8 @@ def get_single_server_status(
 @app.post("/api/check")
 def run_all_checks() -> dict:
     """
-    Run API and system checks for all configured servers.
+    Run API and system checks against
+    all configured servers.
     """
 
     results = check_all_servers(
@@ -224,25 +295,32 @@ def run_all_checks() -> dict:
 
     return {
         "message": (
-            "All API and system checks completed"
+            "All API and system "
+            "checks completed"
         ),
         "results": results,
-        "scheduler": get_scheduler_status(),
+        "scheduler": (
+            get_scheduler_status()
+        ),
     }
 
 
 @app.post("/api/check/api")
 def run_all_api_checks() -> dict:
     """
-    Run only the IMAL API checks for all servers.
+    Run only IMAL API checks for all servers.
     """
 
-    results = check_all_server_apis(
-        servers
+    results = (
+        check_all_server_apis(
+            servers
+        )
     )
 
     return {
-        "message": "All API checks completed",
+        "message": (
+            "All API checks completed"
+        ),
         "results": results,
     }
 
@@ -250,11 +328,13 @@ def run_all_api_checks() -> dict:
 @app.post("/api/check/system")
 def run_all_system_checks() -> dict:
     """
-    Run only the SSH resource checks for all servers.
+    Run only SSH resource checks for all servers.
     """
 
-    results = check_all_server_systems(
-        servers
+    results = (
+        check_all_server_systems(
+            servers
+        )
     )
 
     return {
@@ -265,12 +345,14 @@ def run_all_system_checks() -> dict:
     }
 
 
-@app.post("/api/check/{server_id}")
+@app.post(
+    "/api/check/{server_id}"
+)
 def run_single_server_checks(
     server_id: str,
 ) -> dict:
     """
-    Run both API and system checks for one server.
+    Run API and system checks for one server.
     """
 
     server = find_server(
@@ -282,12 +364,15 @@ def run_single_server_checks(
     )
 
 
-@app.post("/api/check/{server_id}/api")
+@app.post(
+    "/api/check/{server_id}/api"
+)
 def run_single_server_api_check(
     server_id: str,
 ) -> dict:
     """
-    Run only the IMAL API check for one server.
+    Run only the IMAL API check
+    for one server.
     """
 
     server = find_server(
@@ -299,12 +384,15 @@ def run_single_server_api_check(
     )
 
 
-@app.post("/api/check/{server_id}/system")
+@app.post(
+    "/api/check/{server_id}/system"
+)
 def run_single_server_system_check(
     server_id: str,
 ) -> dict:
     """
-    Run only the SSH resource check for one server.
+    Run only the SSH resource check
+    for one server.
     """
 
     server = find_server(
@@ -314,3 +402,74 @@ def run_single_server_system_check(
     return check_single_server_system(
         server
     )
+
+
+@app.post(
+    "/api/control/{server_id}/restart"
+)
+def restart_server_application(
+    server_id: str,
+) -> dict:
+    """
+    Restart a configured Tomcat instance.
+
+    Application control must explicitly be
+    enabled for the server.
+
+    Restart is additionally restricted to
+    Node1 and Node2.
+    """
+
+    server = find_server(
+        server_id
+    )
+
+    control = server.get(
+        "application_control",
+        {},
+    )
+
+    if not control.get(
+        "enabled",
+        False,
+    ):
+        raise HTTPException(
+            status_code=403,
+            detail=(
+                "Application control is not "
+                "enabled for this server"
+            ),
+        )
+
+    if server_id not in {
+        "node1",
+        "node2",
+    }:
+        raise HTTPException(
+            status_code=403,
+            detail=(
+                "Application restart is only "
+                "allowed for Node1 and Node2"
+            ),
+        )
+
+    logger.warning(
+        "CONTROL | %s | "
+        "Tomcat restart requested",
+        server_id,
+    )
+
+    result = restart_tomcat(
+        server
+    )
+
+    if not result.get(
+        "success",
+        False,
+    ):
+        raise HTTPException(
+            status_code=500,
+            detail=result,
+        )
+
+    return result
