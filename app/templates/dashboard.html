@@ -17,27 +17,35 @@
 </head>
 
 <body>
+
     <header class="page-header">
+
         <div class="header-copy">
             <p class="eyebrow">
                 Infrastructure monitoring
             </p>
 
-            <h1>{{ title }}</h1>
+            <h1>
+                {{ title }}
+            </h1>
 
             <p class="subtitle">
                 Connectivity and system health for servers
             </p>
         </div>
 
+
         <div class="header-actions">
+
             <div class="refresh-information">
+
                 <div class="application-status">
                     <span class="status-dot"></span>
                     Dashboard running
                 </div>
 
                 <div class="refresh-schedule">
+
                     <span>
                         Auto refresh:
                         {{ scheduler.interval_minutes }} minutes
@@ -47,8 +55,11 @@
                         Next check:
                         {{ scheduler.next_run_at or "Not scheduled" }}
                     </span>
+
                 </div>
+
             </div>
+
 
             <button
                 id="refresh-all-button"
@@ -58,16 +69,22 @@
             >
                 Refresh all
             </button>
+
         </div>
+
     </header>
 
+
     <main class="dashboard-container">
+
         <section class="server-grid">
 
             {% for server_id, server in servers.items() %}
+
             <article class="server-card">
 
                 <div class="server-card-header">
+
                     <div>
                         <p class="server-id">
                             {{ server_id }}
@@ -78,10 +95,13 @@
                         </h2>
                     </div>
 
+
                     <div class="server-header-actions">
+
                         <span class="status {{ server.api.status }}">
                             {{ server.api.status }}
                         </span>
+
 
                         <button
                             id="refresh-{{ server_id }}"
@@ -92,36 +112,86 @@
                         >
                             Refresh
                         </button>
+
+
+                        {% if server_id in controllable_server_ids %}
+
+                        <button
+                            id="restart-{{ server_id }}"
+                            class="restart-button"
+                            type="button"
+                            onclick="openRestartModal(
+                                '{{ server_id }}',
+                                '{{ server.name }}'
+                            )"
+                            title="Restart Tomcat on {{ server.name }}"
+                        >
+                            Restart Tomcat
+                        </button>
+
+                        {% endif %}
+
                     </div>
+
                 </div>
 
+
+                {% if server_id in controllable_server_ids %}
+
+                <div
+                    id="restart-result-{{ server_id }}"
+                    class="restart-result hidden"
+                ></div>
+
+                {% endif %}
+
+
                 <div class="metric-section">
+
                     <div class="section-title">
-                        <h3>IMAL API</h3>
+
+                        <h3>
+                            IMAL API
+                        </h3>
 
                         <span class="status {{ server.api.status }}">
                             {{ server.api.status }}
                         </span>
+
                     </div>
 
+
                     <div class="metric-row">
-                        <span>Status description</span>
+
+                        <span>
+                            Status description
+                        </span>
 
                         <strong>
                             {{ server.api.status_desc or "Pending" }}
                         </strong>
+
                     </div>
 
+
                     <div class="metric-row">
-                        <span>HTTP status</span>
+
+                        <span>
+                            HTTP status
+                        </span>
 
                         <strong>
                             {{ server.api.http_status or "-" }}
                         </strong>
+
                     </div>
 
+
                     <div class="metric-row">
-                        <span>Response time</span>
+
+                        <span>
+                            Response time
+                        </span>
 
                         <strong>
                             {% if server.api.response_time_ms is not none %}
@@ -130,95 +200,156 @@
                                 -
                             {% endif %}
                         </strong>
+
                     </div>
 
+
                     <div class="metric-row">
-                        <span>Last checked</span>
+
+                        <span>
+                            Last checked
+                        </span>
 
                         <strong>
                             {{ server.api.checked_at or "Not checked" }}
                         </strong>
+
                     </div>
 
+
                     {% if server.api.error %}
+
                     <div class="error-box">
                         {{ server.api.error }}
                     </div>
+
                     {% endif %}
+
                 </div>
 
+
                 <div class="metric-section">
+
                     <div class="section-title">
-                        <h3>Server Resources</h3>
+
+                        <h3>
+                            Server Resources
+                        </h3>
 
                         <span class="status {{ server.system.status }}">
                             {{ server.system.status }}
                         </span>
+
                     </div>
 
+
                     <div class="metric-row">
-                        <span>SSH status</span>
+
+                        <span>
+                            SSH status
+                        </span>
 
                         <strong>
                             {{ server.system.ssh_status or "Pending" }}
                         </strong>
+
                     </div>
 
+
                     {% if server.system.cpu %}
+
                     <div class="resource-block">
+
                         <div class="resource-label">
-                            <span>CPU</span>
+
+                            <span>
+                                CPU
+                            </span>
 
                             <strong>
                                 {{ server.system.cpu.percent }}%
                             </strong>
+
                         </div>
+
 
                         <div class="progress-track">
+
                             <div
-                                class="progress-bar
-                                {% if server.system.cpu.percent >= 90 %}
-                                    critical-bar
-                                {% elif server.system.cpu.percent >= 75 %}
-                                    warning-bar
-                                {% else %}
-                                    healthy-bar
-                                {% endif %}"
-                                style="width: {{ server.system.cpu.percent }}%"
+                                class="
+                                    progress-bar
+
+                                    {% if server.system.cpu.percent >= 90 %}
+                                        critical-bar
+
+                                    {% elif server.system.cpu.percent >= 75 %}
+                                        warning-bar
+
+                                    {% else %}
+                                        healthy-bar
+
+                                    {% endif %}
+                                "
+                                style="width: {{ server.system.cpu.percent }}%;"
                             ></div>
+
                         </div>
+
                     </div>
+
                     {% endif %}
 
+
                     {% if server.system.memory %}
+
                     <div class="resource-block">
+
                         <div class="resource-label">
-                            <span>Memory</span>
+
+                            <span>
+                                Memory
+                            </span>
 
                             <strong>
                                 {{ server.system.memory.percent }}%
                             </strong>
+
                         </div>
+
 
                         <div class="progress-track">
+
                             <div
-                                class="progress-bar
-                                {% if server.system.memory.percent >= 90 %}
-                                    critical-bar
-                                {% elif server.system.memory.percent >= 80 %}
-                                    warning-bar
-                                {% else %}
-                                    healthy-bar
-                                {% endif %}"
-                                style="width: {{ server.system.memory.percent }}%"
+                                class="
+                                    progress-bar
+
+                                    {% if server.system.memory.percent >= 90 %}
+                                        critical-bar
+
+                                    {% elif server.system.memory.percent >= 80 %}
+                                        warning-bar
+
+                                    {% else %}
+                                        healthy-bar
+
+                                    {% endif %}
+                                "
+                                style="width: {{ server.system.memory.percent }}%;"
                             ></div>
+
                         </div>
+
                     </div>
+
                     {% endif %}
 
+
                     {% if server.system.highest_filesystem %}
+
                     <div class="resource-block">
+
                         <div class="resource-label">
+
                             <span>
                                 Highest disk:
                                 {{ server.system.highest_filesystem.mount_point }}
@@ -229,76 +360,121 @@
                                     server.system.highest_filesystem.usage_percent
                                 }}%
                             </strong>
+
                         </div>
 
+
                         <div class="progress-track">
+
                             <div
-                                class="progress-bar
-                                {% if server.system.highest_filesystem.usage_percent >= 90 %}
-                                    critical-bar
-                                {% elif server.system.highest_filesystem.usage_percent >= 80 %}
-                                    warning-bar
-                                {% else %}
-                                    healthy-bar
-                                {% endif %}"
+                                class="
+                                    progress-bar
+
+                                    {% if server.system.highest_filesystem.usage_percent >= 90 %}
+                                        critical-bar
+
+                                    {% elif server.system.highest_filesystem.usage_percent >= 80 %}
+                                        warning-bar
+
+                                    {% else %}
+                                        healthy-bar
+
+                                    {% endif %}
+                                "
                                 style="
                                     width:
                                     {{
                                         server.system.highest_filesystem.usage_percent
-                                    }}%
+                                    }}%;
                                 "
                             ></div>
+
                         </div>
+
                     </div>
+
                     {% endif %}
 
+
                     {% if server.system.load_average %}
+
                     <div class="metric-row">
-                        <span>Load average</span>
+
+                        <span>
+                            Load average
+                        </span>
 
                         <strong>
                             {{ server.system.load_average.load_1 }},
                             {{ server.system.load_average.load_5 }},
                             {{ server.system.load_average.load_15 }}
                         </strong>
+
                     </div>
+
                     {% endif %}
 
+
                     {% if server.system.uptime %}
+
                     <div class="metric-row">
-                        <span>Uptime</span>
+
+                        <span>
+                            Uptime
+                        </span>
 
                         <strong>
                             {{ server.system.uptime.days }} days
                         </strong>
+
                     </div>
+
                     {% endif %}
 
+
                     <div class="metric-row">
-                        <span>Last checked</span>
+
+                        <span>
+                            Last checked
+                        </span>
 
                         <strong>
                             {{ server.system.checked_at or "Not checked" }}
                         </strong>
+
                     </div>
 
+
                     {% if server.system.error %}
+
                     <div class="error-box">
                         {{ server.system.error }}
                     </div>
+
                     {% endif %}
+
                 </div>
 
+
                 {% if server.system.filesystems %}
+
                 <div class="metric-section">
+
                     <div class="section-title">
-                        <h3>Filesystems</h3>
+                        <h3>
+                            Filesystems
+                        </h3>
                     </div>
 
+
                     <div class="filesystem-list">
+
                         {% for filesystem in server.system.filesystems %}
+
                         <div class="filesystem-item">
+
                             <div class="filesystem-heading">
+
                                 <span>
                                     {{ filesystem.mount_point }}
                                 </span>
@@ -306,100 +482,208 @@
                                 <strong>
                                     {{ filesystem.usage_percent }}%
                                 </strong>
+
                             </div>
 
+
                             <div class="progress-track">
+
                                 <div
-                                    class="progress-bar
-                                    {% if filesystem.usage_percent >= 90 %}
-                                        critical-bar
-                                    {% elif filesystem.usage_percent >= 80 %}
-                                        warning-bar
-                                    {% else %}
-                                        healthy-bar
-                                    {% endif %}"
+                                    class="
+                                        progress-bar
+
+                                        {% if filesystem.usage_percent >= 90 %}
+                                            critical-bar
+
+                                        {% elif filesystem.usage_percent >= 80 %}
+                                            warning-bar
+
+                                        {% else %}
+                                            healthy-bar
+
+                                        {% endif %}
+                                    "
                                     style="
                                         width:
-                                        {{ filesystem.usage_percent }}%
+                                        {{ filesystem.usage_percent }}%;
                                     "
                                 ></div>
+
                             </div>
+
                         </div>
+
                         {% endfor %}
+
                     </div>
+
                 </div>
+
                 {% endif %}
 
             </article>
+
             {% endfor %}
 
         </section>
+
     </main>
 
+
+    <!-- ==================================================
+         Restart confirmation modal
+    =================================================== -->
+
+    <div
+        id="restart-modal"
+        class="modal-overlay hidden"
+    >
+
+        <div class="restart-modal">
+
+            <div class="restart-modal-icon">
+                !
+            </div>
+
+
+            <h3>
+                Restart Tomcat?
+            </h3>
+
+
+            <p>
+                You are about to restart the application on
+                <strong id="restart-server-name"></strong>.
+            </p>
+
+
+            <p class="restart-warning">
+                This will temporarily interrupt services
+                running on this Tomcat instance.
+            </p>
+
+
+            <div class="restart-modal-actions">
+
+                <button
+                    id="restart-cancel-button"
+                    class="modal-cancel-button"
+                    type="button"
+                    onclick="closeRestartModal()"
+                >
+                    Cancel
+                </button>
+
+
+                <button
+                    id="restart-confirm-button"
+                    class="modal-restart-button"
+                    type="button"
+                    onclick="confirmRestart()"
+                >
+                    Restart application
+                </button>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
     <script>
+
         const STATUS_POLL_INTERVAL_MS = 30000;
 
         let lastKnownCheckTimestamp =
             getLatestCheckTimestamp();
 
+        let pendingRestartServerId = null;
+        let pendingRestartServerName = null;
+
 
         function getLatestCheckTimestamp() {
+
             const timestamps = [];
 
             {% for server_id, server in servers.items() %}
+
                 {% if server.api.checked_at %}
+
                     timestamps.push(
                         "{{ server.api.checked_at }}"
                     );
+
                 {% endif %}
 
+
                 {% if server.system.checked_at %}
+
                     timestamps.push(
                         "{{ server.system.checked_at }}"
                     );
+
                 {% endif %}
+
             {% endfor %}
+
 
             if (timestamps.length === 0) {
                 return null;
             }
 
+
             timestamps.sort();
+
 
             return timestamps[
                 timestamps.length - 1
             ];
+
         }
 
 
         function getLatestTimestampFromStatus(data) {
+
             const timestamps = [];
+
 
             Object.values(
                 data.servers || {}
             ).forEach((server) => {
+
                 if (server.api?.checked_at) {
+
                     timestamps.push(
                         server.api.checked_at
                     );
+
                 }
 
+
                 if (server.system?.checked_at) {
+
                     timestamps.push(
                         server.system.checked_at
                     );
+
                 }
+
             });
+
 
             if (timestamps.length === 0) {
                 return null;
             }
 
+
             timestamps.sort();
+
 
             return timestamps[
                 timestamps.length - 1
             ];
+
         }
 
 
@@ -408,24 +692,37 @@
             isLoading,
             loadingText = "Checking..."
         ) {
+
             if (!button) {
                 return;
             }
 
+
             if (isLoading) {
+
                 button.dataset.originalText =
                     button.textContent.trim();
 
+
                 button.disabled = true;
-                button.textContent = loadingText;
+
+
+                button.textContent =
+                    loadingText;
+
 
                 return;
+
             }
 
+
             button.disabled = false;
+
+
             button.textContent =
                 button.dataset.originalText
                 || "Refresh";
+
         }
 
 
@@ -433,117 +730,468 @@
             url,
             button
         ) {
+
             setButtonLoading(
                 button,
                 true
             );
 
+
             try {
-                const response = await fetch(
-                    url,
-                    {
-                        method: "POST",
-                        headers: {
-                            "Accept": "application/json"
+
+                const response =
+                    await fetch(
+                        url,
+                        {
+                            method: "POST",
+                            headers: {
+                                "Accept":
+                                    "application/json"
+                            }
                         }
-                    }
-                );
+                    );
+
 
                 if (!response.ok) {
+
                     let errorMessage =
                         `HTTP ${response.status}`;
 
+
                     try {
+
                         const errorData =
                             await response.json();
 
+
                         if (errorData.detail) {
+
                             errorMessage =
-                                errorData.detail;
+                                typeof errorData.detail
+                                === "string"
+                                ? errorData.detail
+                                : JSON.stringify(
+                                    errorData.detail
+                                );
+
                         }
+
                     } catch (_) {
-                        // Keep the default HTTP message.
                     }
 
-                    throw new Error(errorMessage);
+
+                    throw new Error(
+                        errorMessage
+                    );
+
                 }
 
+
                 await response.json();
+
 
                 window.location.reload();
 
             } catch (error) {
+
                 console.error(
                     "Monitoring refresh failed:",
                     error
                 );
 
+
                 alert(
                     `Refresh failed: ${error.message}`
                 );
+
 
                 setButtonLoading(
                     button,
                     false
                 );
+
             }
+
         }
 
 
         function refreshAllServers() {
+
             const button =
                 document.getElementById(
                     "refresh-all-button"
                 );
 
+
             runRefresh(
                 "/api/check",
                 button
             );
+
         }
 
 
-        function refreshServer(serverId) {
+        function refreshServer(
+            serverId
+        ) {
+
             const button =
                 document.getElementById(
                     `refresh-${serverId}`
                 );
 
+
             runRefresh(
                 `/api/check/${serverId}`,
                 button
             );
+
+        }
+
+
+        function openRestartModal(
+            serverId,
+            serverName
+        ) {
+
+            pendingRestartServerId =
+                serverId;
+
+
+            pendingRestartServerName =
+                serverName;
+
+
+            const modal =
+                document.getElementById(
+                    "restart-modal"
+                );
+
+
+            const serverNameLabel =
+                document.getElementById(
+                    "restart-server-name"
+                );
+
+
+            serverNameLabel.textContent =
+                serverName;
+
+
+            modal.classList.remove(
+                "hidden"
+            );
+
+        }
+
+
+        function closeRestartModal() {
+
+            const modal =
+                document.getElementById(
+                    "restart-modal"
+                );
+
+
+            modal.classList.add(
+                "hidden"
+            );
+
+
+            pendingRestartServerId =
+                null;
+
+
+            pendingRestartServerName =
+                null;
+
+        }
+
+
+        async function confirmRestart() {
+
+            if (!pendingRestartServerId) {
+                return;
+            }
+
+
+            const serverId =
+                pendingRestartServerId;
+
+
+            const serverName =
+                pendingRestartServerName;
+
+
+            const restartButton =
+                document.getElementById(
+                    `restart-${serverId}`
+                );
+
+
+            const refreshButton =
+                document.getElementById(
+                    `refresh-${serverId}`
+                );
+
+
+            const resultBox =
+                document.getElementById(
+                    `restart-result-${serverId}`
+                );
+
+
+            const confirmButton =
+                document.getElementById(
+                    "restart-confirm-button"
+                );
+
+
+            const cancelButton =
+                document.getElementById(
+                    "restart-cancel-button"
+                );
+
+
+            confirmButton.disabled =
+                true;
+
+
+            cancelButton.disabled =
+                true;
+
+
+            confirmButton.textContent =
+                "Restarting...";
+
+
+            restartButton.disabled =
+                true;
+
+
+            restartButton.textContent =
+                "Restarting...";
+
+
+            if (refreshButton) {
+
+                refreshButton.disabled =
+                    true;
+
+            }
+
+
+            resultBox.className =
+                "restart-result restarting";
+
+
+            resultBox.textContent =
+                `Restarting Tomcat on ${serverName}. `
+                + "Shutdown, startup and health checks "
+                + "may take up to two minutes...";
+
+
+            document
+                .getElementById(
+                    "restart-modal"
+                )
+                .classList.add(
+                    "hidden"
+                );
+
+
+            try {
+
+                const response =
+                    await fetch(
+                        `/api/control/${serverId}/restart`,
+                        {
+                            method: "POST",
+                            headers: {
+                                "Accept":
+                                    "application/json"
+                            }
+                        }
+                    );
+
+
+                let data = {};
+
+
+                try {
+
+                    data =
+                        await response.json();
+
+                } catch (_) {
+                }
+
+
+                if (!response.ok) {
+
+                    let errorMessage =
+                        `Restart failed with HTTP `
+                        + `${response.status}`;
+
+
+                    if (data.detail) {
+
+                        if (
+                            typeof data.detail
+                            === "string"
+                        ) {
+
+                            errorMessage =
+                                data.detail;
+
+                        } else if (
+                            data.detail.message
+                        ) {
+
+                            errorMessage =
+                                data.detail.message;
+
+                        }
+
+                    }
+
+
+                    throw new Error(
+                        errorMessage
+                    );
+
+                }
+
+
+                resultBox.className =
+                    "restart-result success";
+
+
+                resultBox.textContent =
+                    data.message
+                    || (
+                        "Application restarted "
+                        + "successfully."
+                    );
+
+
+                restartButton.disabled =
+                    false;
+
+
+                restartButton.textContent =
+                    "Restart Tomcat";
+
+
+                if (refreshButton) {
+
+                    refreshButton.disabled =
+                        false;
+
+                }
+
+
+                window.setTimeout(
+                    () => {
+                        window.location.reload();
+                    },
+                    3000
+                );
+
+            } catch (error) {
+
+                console.error(
+                    "Tomcat restart failed:",
+                    error
+                );
+
+
+                resultBox.className =
+                    "restart-result failure";
+
+
+                resultBox.textContent =
+                    `Restart failed: ${error.message}`;
+
+
+                restartButton.disabled =
+                    false;
+
+
+                restartButton.textContent =
+                    "Restart Tomcat";
+
+
+                if (refreshButton) {
+
+                    refreshButton.disabled =
+                        false;
+
+                }
+
+            } finally {
+
+                confirmButton.disabled =
+                    false;
+
+
+                cancelButton.disabled =
+                    false;
+
+
+                confirmButton.textContent =
+                    "Restart application";
+
+
+                pendingRestartServerId =
+                    null;
+
+
+                pendingRestartServerName =
+                    null;
+
+            }
+
         }
 
 
         async function pollForUpdatedStatus() {
+
             try {
-                const response = await fetch(
-                    "/api/status",
-                    {
-                        method: "GET",
-                        headers: {
-                            "Accept": "application/json"
-                        },
-                        cache: "no-store"
-                    }
-                );
+
+                const response =
+                    await fetch(
+                        "/api/status",
+                        {
+                            method: "GET",
+                            headers: {
+                                "Accept":
+                                    "application/json"
+                            },
+                            cache: "no-store"
+                        }
+                    );
+
 
                 if (!response.ok) {
                     return;
                 }
 
+
                 const data =
                     await response.json();
+
 
                 updateNextRefreshLabel(
                     data.scheduler
                 );
 
+
                 const latestTimestamp =
                     getLatestTimestampFromStatus(
                         data
                     );
+
 
                 if (
                     latestTimestamp
@@ -551,71 +1199,139 @@
                     && latestTimestamp
                         !== lastKnownCheckTimestamp
                 ) {
+
                     window.location.reload();
+
                     return;
+
                 }
+
 
                 if (
                     latestTimestamp
                     && !lastKnownCheckTimestamp
                 ) {
+
                     lastKnownCheckTimestamp =
                         latestTimestamp;
 
                     window.location.reload();
+
                 }
 
             } catch (error) {
+
                 console.warn(
                     "Could not poll monitoring status:",
                     error
                 );
+
             }
+
         }
 
 
         function updateNextRefreshLabel(
             scheduler
         ) {
+
             const label =
                 document.getElementById(
                     "next-refresh-label"
                 );
 
-            if (!label || !scheduler) {
+
+            if (
+                !label
+                || !scheduler
+            ) {
                 return;
             }
 
+
             if (!scheduler.running) {
+
                 label.textContent =
                     "Automatic checks stopped";
 
+
                 return;
+
             }
 
+
             if (!scheduler.next_run_at) {
+
                 label.textContent =
                     "Next check: pending";
 
+
                 return;
+
             }
+
 
             const nextRun =
                 new Date(
                     scheduler.next_run_at
                 );
 
+
             label.textContent =
                 `Next check: ${
                     nextRun.toLocaleString()
                 }`;
+
         }
+
+
+        document
+            .getElementById(
+                "restart-modal"
+            )
+            .addEventListener(
+                "click",
+                function(event) {
+
+                    if (
+                        event.target
+                        === this
+                    ) {
+
+                        closeRestartModal();
+
+                    }
+
+                }
+            );
+
+
+        document.addEventListener(
+            "keydown",
+            function(event) {
+
+                if (
+                    event.key
+                    === "Escape"
+                ) {
+
+                    closeRestartModal();
+
+                }
+
+            }
+        );
 
 
         window.setInterval(
             pollForUpdatedStatus,
             STATUS_POLL_INTERVAL_MS
         );
+
+
+        pollForUpdatedStatus();
+
     </script>
+
 </body>
 </html>

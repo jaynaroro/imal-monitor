@@ -1,20 +1,20 @@
 servers:
   - id: imalweb
     name: IMAL Web
-    api_url: "https://xxxxxxxx/weburl/getaccountDetails"
-    ssh_host: "192.X.X.X"
+    api_url_env: IMALWEB_API_URL
+    ssh_host_env: IMALWEB_SSH_HOST
     ssh_port: 22
-    ssh_username: "monitoring_user"
+    ssh_username_env: IMALWEB_SSH_USERNAME
 
     application_control:
       enabled: false
 
   - id: node1
     name: Node 1
-    api_url: "https://xxxxxxxx/weburl/getaccountDetails"
-    ssh_host: "192.X.X.X"
+    api_url_env: NODE1_API_URL
+    ssh_host_env: NODE1_SSH_HOST
     ssh_port: 22
-    ssh_username: "monitoring_user"
+    ssh_username_env: NODE1_SSH_USERNAME
 
     application_control:
       enabled: true
@@ -25,10 +25,10 @@ servers:
 
   - id: node2
     name: Node 2
-    api_url: "https://xxxxxxxx/weburl/getaccountDetails"
-    ssh_host: "192.X.X.X"
+    api_url_env: NODE2_API_URL
+    ssh_host_env: NODE2_SSH_HOST
     ssh_port: 22
-    ssh_username: "monitoring_user"
+    ssh_username_env: NODE2_SSH_USERNAME
 
 
     application_control:

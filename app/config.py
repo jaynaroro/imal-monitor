@@ -80,36 +80,90 @@ if AUTO_REFRESH_MINUTES < 1:
 def load_servers() -> list[dict[str, Any]]:
     if not SERVERS_FILE.exists():
         raise FileNotFoundError(
-            f"Server configuration file not found: {SERVERS_FILE}"
+            f"Server configuration file not found: "
+            f"{SERVERS_FILE}"
         )
 
-    with SERVERS_FILE.open("r", encoding="utf-8") as file:
+    with SERVERS_FILE.open(
+        "r",
+        encoding="utf-8",
+    ) as file:
         data = yaml.safe_load(file)
 
     servers = data.get("servers", [])
 
     if not servers:
         raise ValueError(
-            "No servers were defined in config/servers.yml"
+            "No servers were defined in "
+            "config/servers.yml"
         )
 
     required_fields = {
-    "id",
-    "name",
-    "api_url",
-    "ssh_host",
-    "ssh_port",
-    "ssh_username",
-}
+        "id",
+        "name",
+        "api_url_env",
+        "ssh_host_env",
+        "ssh_username_env",
+        "ssh_port",
+    }
 
     for server in servers:
-        missing_fields = required_fields - server.keys()
+        missing_fields = (
+            required_fields - server.keys()
+        )
 
         if missing_fields:
             raise ValueError(
-                f"Server configuration is missing fields: "
+                "Server configuration is missing "
+                f"fields: "
                 f"{', '.join(sorted(missing_fields))}"
             )
+
+        api_url_env = server["api_url_env"]
+        ssh_host_env = server["ssh_host_env"]
+        ssh_username_env = (
+            server["ssh_username_env"]
+        )
+
+        api_url = os.getenv(api_url_env)
+        ssh_host = os.getenv(ssh_host_env)
+        ssh_username = os.getenv(
+            ssh_username_env
+        )
+
+        missing_environment_variables = []
+
+        if not api_url:
+            missing_environment_variables.append(
+                api_url_env
+            )
+
+        if not ssh_host:
+            missing_environment_variables.append(
+                ssh_host_env
+            )
+
+        if not ssh_username:
+            missing_environment_variables.append(
+                ssh_username_env
+            )
+
+        if missing_environment_variables:
+            raise ValueError(
+                "Missing required environment "
+                "variables for server "
+                f"'{server['id']}': "
+                + ", ".join(
+                    missing_environment_variables
+                )
+            )
+
+        # Resolve environment-variable references
+        # into the fields used by the rest of the
+        # application.
+        server["api_url"] = api_url
+        server["ssh_host"] = ssh_host
+        server["ssh_username"] = ssh_username
 
     return servers
 
