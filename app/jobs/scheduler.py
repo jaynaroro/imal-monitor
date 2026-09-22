@@ -3,6 +3,11 @@ from datetime import datetime
 from typing import Any
 from zoneinfo import ZoneInfo
 
+from app.services.database_monitor import (
+    check_all_databases,
+)
+
+
 from apscheduler.schedulers.background import BackgroundScheduler
 
 from app.config import AUTO_REFRESH_MINUTES
@@ -45,6 +50,68 @@ def scheduled_monitoring_check(
             "Scheduled monitoring check failed"
         )
 
+def scheduled_database_check() -> None:
+
+    """
+
+    Run scheduled database health checks.
+
+    """
+
+
+
+    logger.info(
+
+        "Starting scheduled database monitoring check"
+
+    )
+
+
+
+    try:
+
+        results = check_all_databases()
+
+
+
+        healthy = sum(
+
+            1
+
+            for result in results
+
+            if result["status"] == "healthy"
+
+        )
+
+
+
+        unhealthy = len(results) - healthy
+
+
+
+        logger.info(
+
+            "Scheduled database monitoring completed: "
+
+            "%s healthy, %s unhealthy",
+
+            healthy,
+
+            unhealthy,
+
+        )
+
+
+
+    except Exception:
+
+        logger.exception(
+
+            "Scheduled database monitoring check failed"
+
+        )
+
 
 def start_scheduler(
     servers: list[dict[str, Any]],
@@ -66,6 +133,17 @@ def start_scheduler(
         args=[servers],
         id="monitor-all-servers",
         name="Monitor all IMAL servers",
+        replace_existing=True,
+        max_instances=1,
+        coalesce=True,
+        misfire_grace_time=60,
+    )
+
+    scheduler.add_job(
+        scheduled_database_check,
+        trigger="interval",
+        minutes=AUTO_REFRESH_MINUTES,
+        id="monitor-all-databases",
         replace_existing=True,
         max_instances=1,
         coalesce=True,
@@ -100,18 +178,35 @@ def get_scheduler_status() -> dict[str, Any]:
     Return information about the monitoring schedule.
     """
 
-    job = scheduler.get_job(
+    server_job = scheduler.get_job(
         "monitor-all-servers"
+    )
+
+    database_job = scheduler.get_job(
+        "monitor-all-databases"
     )
 
     return {
         "running": scheduler.running,
         "interval_minutes": AUTO_REFRESH_MINUTES,
         "next_run_at": (
-            job.next_run_time.isoformat(
-                timespec="seconds"
-            )
-            if job and job.next_run_time
-            else None
-        ),
-    }
+           server_job.next_run_time.isoformat(
+            timespec="seconds"
+        )
+        if (
+            server_job
+            and server_job.next_run_time
+        )
+        else None
+    ),
+    "database_next_run_at": (
+        database_job.next_run_time.isoformat(
+            timespec="seconds"
+        )
+        if (
+            database_job
+            and database_job.next_run_time
+        )
+        else None
+    ),
+}

@@ -19,8 +19,9 @@ servers:
     application_control:
       enabled: true
       tomcat_home: "/imal/TomcatNode1"
+      java_home: "/imal/java/jdk-11.0.10"
       process_match: "Dcatalina.base=/imal/TomcatNode1"
-      shutdown_timeout: 30
+      kill_timeout: 10
       startup_timeout: 60
 
   - id: node2
@@ -34,7 +35,8 @@ servers:
     application_control:
       enabled: true
       tomcat_home: "/imal/TomcatNode2"
+      java_home: "/imal/java/jdk-11.0.10"
       process_match: "Dcatalina.base=/imal/TomcatNode2"
-      shutdown_timeout: 30
+      kill_timeout: 10
       startup_timeout: 60
 

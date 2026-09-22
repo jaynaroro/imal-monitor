@@ -21,18 +21,125 @@
     <header class="page-header">
 
         <div class="header-copy">
-            <p class="eyebrow">
-                Infrastructure monitoring
-            </p>
 
-            <h1>
-                {{ title }}
-            </h1>
+    <p class="eyebrow">
+        Infrastructure monitoring
+    </p>
 
-            <p class="subtitle">
-                Connectivity and system health for servers
-            </p>
-        </div>
+    <h1>
+        {{ title }}
+    </h1>
+
+    <p class="subtitle">
+        Connectivity and system health for servers
+    </p>
+
+
+    <nav class="portal-nav">
+
+
+
+    <a
+
+        href="/"
+
+        class="portal-nav-item active"
+
+    >
+
+        <span class="nav-status-dot
+
+            {% if summary.servers.all_healthy %}
+
+                nav-healthy
+
+            {% else %}
+
+                nav-warning
+
+            {% endif %}
+
+        "></span>
+
+
+
+        <span>
+
+            IMAL Servers
+
+        </span>
+
+
+
+        <strong>
+
+            {{ summary.servers.healthy }}
+
+            /
+
+            {{ summary.servers.total }}
+
+            Healthy
+
+        </strong>
+
+    </a>
+
+
+
+
+
+    <a
+
+        href="/databases"
+
+        class="portal-nav-item"
+
+    >
+
+        <span class="nav-status-dot
+
+            {% if summary.databases.all_healthy %}
+
+                nav-healthy
+
+            {% else %}
+
+                nav-warning
+
+            {% endif %}
+
+        "></span>
+
+
+
+        <span>
+
+            Databases
+
+        </span>
+
+
+
+        <strong>
+
+            {{ summary.databases.healthy }}
+
+            /
+
+            {{ summary.databases.total }}
+
+            Healthy
+
+        </strong>
+
+    </a>
+
+
+
+</nav>
+
+</div>
 
 
         <div class="header-actions">

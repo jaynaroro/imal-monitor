@@ -834,3 +834,406 @@ h3 {
         width: 100%;
     }
 }
+
+/* ==================================================
+
+   Portal navigation
+
+================================================== */
+
+
+
+.portal-nav {
+
+    display: flex;
+
+    flex-wrap: wrap;
+
+
+
+    gap: 0.75rem;
+
+
+
+    margin-top: 1.4rem;
+
+}
+
+
+
+.portal-nav-item {
+
+    display: flex;
+
+    align-items: center;
+
+
+
+    gap: 0.55rem;
+
+
+
+    padding: 0.65rem 0.85rem;
+
+
+
+    border: 1px solid
+
+        rgba(255, 255, 255, 0.14);
+
+
+
+    border-radius: 10px;
+
+
+
+    color:
+
+        rgba(255, 255, 255, 0.78);
+
+
+
+    background:
+
+        rgba(255, 255, 255, 0.05);
+
+
+
+    text-decoration: none;
+
+
+
+    font-size: 0.78rem;
+
+
+
+    transition:
+
+        background 0.15s ease,
+
+        border-color 0.15s ease,
+
+        transform 0.15s ease;
+
+}
+
+
+
+.portal-nav-item:hover {
+
+    color: #ffffff;
+
+
+
+    background:
+
+        rgba(255, 255, 255, 0.10);
+
+
+
+    transform: translateY(-1px);
+
+}
+
+
+
+.portal-nav-item.active {
+
+    color: #ffffff;
+
+
+
+    border-color:
+
+        rgba(255, 255, 255, 0.28);
+
+
+
+    background:
+
+        rgba(255, 255, 255, 0.14);
+
+}
+
+
+
+.portal-nav-item strong {
+
+    padding-left: 0.5rem;
+
+
+
+    border-left: 1px solid
+
+        rgba(255, 255, 255, 0.18);
+
+
+
+    color: #d0d5dd;
+
+
+
+    font-size: 0.7rem;
+
+    font-weight: 600;
+
+}
+
+
+
+
+
+/* Small health indicator */
+
+
+
+.nav-status-dot {
+
+    flex: 0 0 auto;
+
+
+
+    width: 8px;
+
+    height: 8px;
+
+
+
+    border-radius: 50%;
+
+}
+
+
+
+.nav-status-dot.nav-healthy {
+
+    background: #4ade80;
+
+
+
+    box-shadow:
+
+        0 0 0 3px
+
+        rgba(74, 222, 128, 0.12);
+
+}
+
+
+
+.nav-status-dot.nav-warning {
+
+    background: #f87171;
+
+
+
+    box-shadow:
+
+        0 0 0 3px
+
+        rgba(248, 113, 113, 0.12);
+
+}
+
+
+
+
+
+@media (max-width: 700px) {
+
+
+
+    .portal-nav {
+
+        width: 100%;
+
+    }
+
+
+
+    .portal-nav-item {
+
+        width: 100%;
+
+    }
+
+
+
+    .portal-nav-item strong {
+
+        margin-left: auto;
+
+    }
+
+
+
+}
+
+
+/* --------------------------------------------------
+
+   Database dashboard
+
+-------------------------------------------------- */
+
+
+
+.server-address {
+
+    margin-top: 5px;
+
+    font-size: 13px;
+
+    color: #718096;
+
+}
+
+
+
+.card-header-actions {
+
+    display: flex;
+
+    align-items: center;
+
+    gap: 10px;
+
+}
+
+
+
+.inline-status {
+
+    font-weight: 700;
+
+}
+
+
+
+.healthy-text {
+
+    color: #16803c;
+
+}
+
+
+
+.unhealthy-text {
+
+    color: #c53030;
+
+}
+
+
+
+.error-box {
+
+    display: flex;
+
+    flex-direction: column;
+
+    gap: 5px;
+
+
+
+    margin-top: 18px;
+
+    padding: 12px 14px;
+
+
+
+    border-radius: 8px;
+
+
+
+    background: #fff5f5;
+
+    border: 1px solid #fed7d7;
+
+
+
+    color: #c53030;
+
+
+
+    font-size: 13px;
+
+}
+
+
+
+.status-pill.unknown {
+
+    background: #edf2f7;
+
+    color: #4a5568;
+
+}
+
+
+
+@media (max-width: 700px) {
+
+
+
+    .portal-nav {
+
+        margin-top: 15px;
+
+    }
+
+
+
+    .card-header-actions {
+
+        align-items: flex-end;
+
+        flex-direction: column;
+
+    }
+
+}
+
+
+
+/* ==================================================
+   Header refresh information
+================================================== */
+
+.refresh-information {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0.65rem;
+}
+
+.refresh-schedule {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0.2rem;
+
+    color: #d0d5dd;
+
+    font-size: 0.75rem;
+    line-height: 1.4;
+}
+
+@media (max-width: 700px) {
+
+    .refresh-information {
+        width: 100%;
+        align-items: flex-start;
+    }
+
+    .refresh-schedule {
+        align-items: flex-start;
+    }
+
+}
+
+
+.status.unknown {
+    color: var(--pending);
+    background: var(--pending-background);
+}

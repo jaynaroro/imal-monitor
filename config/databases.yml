@@ -1,0 +1,79 @@
+databases:
+
+  - id: sql01
+
+    name: Premier Connect DB
+
+    type: sqlserver
+
+    host: 192.168.0.20
+
+    port: 1433
+
+    database: PBK_Omni_Live
+
+    username_env: SQL01_USERNAME
+
+    password_env: SQL01_PASSWORD
+
+    enabled: true
+
+
+
+  - id: sql02
+
+    name: Corelink DB
+
+    type: sqlserver
+
+    host: 192.168.0.24
+
+    port: 1433
+
+    database: PBKCoreLink_Live
+
+    username_env: SQL02_USERNAME
+
+    password_env: SQL02_PASSWORD
+
+    enabled: true
+
+
+
+  - id: sql03
+
+    name: Prime DB
+
+    type: sqlserver
+
+    host: 172.16.0.160
+
+    port: 1433
+
+    database: master
+
+    username_env: SQL03_USERNAME
+
+    password_env: SQL03_PASSWORD
+
+    enabled: true
+
+
+
+  - id: sql04
+
+    name: Pesalink DB
+
+    type: sqlserver
+
+    host: 172.16.0.173
+
+    port: 1433
+
+    database: master
+
+    username_env: SQL04_USERNAME
+
+    password_env: SQL04_PASSWORD
+
+    enabled: true

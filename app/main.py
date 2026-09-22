@@ -1,5 +1,19 @@
 import logging
 
+from app.database_cache import (
+    get_database_cache,
+    get_single_database_cache,
+    initialize_database_cache,
+)
+
+
+from app.services.database_monitor import (
+    check_all_databases,
+    check_single_database,
+    load_databases,
+)
+
+
 from contextlib import asynccontextmanager
 from datetime import datetime
 from zoneinfo import ZoneInfo
@@ -63,6 +77,9 @@ initialize_cache(
     servers
 )
 
+databases = load_databases()
+initialize_database_cache(databases)
+
 
 def find_server(
     server_id: str,
@@ -93,6 +110,102 @@ def find_server(
 
     return server
 
+def get_portal_summary() -> dict:
+
+    """
+
+    Build a high-level health summary for the portal.
+
+    """
+
+
+
+    server_cache = get_cache()
+
+    database_cache = get_database_cache()
+
+
+
+    total_servers = len(server_cache)
+
+
+
+    healthy_servers = sum(
+
+        1
+
+        for server in server_cache.values()
+
+        if (
+
+            server.get("api", {}).get("status")
+
+            == "healthy"
+
+            and
+
+            server.get("system", {}).get("status")
+
+            == "healthy"
+
+        )
+
+    )
+
+
+
+    total_databases = len(database_cache)
+
+
+
+    healthy_databases = sum(
+
+        1
+
+        for database in database_cache
+
+        if database.get("status") == "healthy"
+
+    )
+
+
+
+    return {
+
+        "servers": {
+
+            "healthy": healthy_servers,
+
+            "total": total_servers,
+
+            "all_healthy": (
+
+                total_servers > 0
+
+                and healthy_servers == total_servers
+
+            ),
+
+        },
+
+        "databases": {
+
+            "healthy": healthy_databases,
+
+            "total": total_databases,
+
+            "all_healthy": (
+
+                total_databases > 0
+
+                and healthy_databases == total_databases
+
+            ),
+
+        },
+
+    }
+
 
 @asynccontextmanager
 async def lifespan(
@@ -116,6 +229,13 @@ async def lifespan(
         logger.exception(
             "Initial monitoring check failed"
         )
+    try:
+        check_all_databases()
+    except Exception:
+        logger.exception(
+            "Initial database monitoring check failed"
+        )
+
 
     if AUTO_REFRESH_ENABLED:
         try:
@@ -149,7 +269,7 @@ async def lifespan(
 
 
 app = FastAPI(
-    title="IMAL Infrastructure Monitor",
+    title="IT Infrastructure Monitor",
     version="1.2.0",
     lifespan=lifespan,
 )
@@ -220,17 +340,54 @@ def dashboard(
         name="dashboard.html",
         context={
             "title": (
-                "IMAL Infrastructure Monitor"
+                "IMAL Monitor"
             ),
             "servers": get_cache(),
-            "scheduler": (
-                get_scheduler_status()
-            ),
-            "controllable_server_ids": (
-                controllable_server_ids
-            ),
+            "scheduler": (get_scheduler_status()),
+            "controllable_server_ids": (controllable_server_ids),
+	    "summary": get_portal_summary(),
         },
     )
+
+@app.get(
+
+    "/databases",
+
+    response_class=HTMLResponse,
+
+)
+
+def database_dashboard(request: Request):
+
+    """
+
+    Database monitoring dashboard.
+
+    """
+
+
+
+    return templates.TemplateResponse(
+
+        request=request,
+
+        name="databases.html",
+
+        context={
+
+            "title": "Database Monitor",
+
+            "databases": get_database_cache(),
+
+            "scheduler": get_scheduler_status(),
+
+	    "summary": get_portal_summary(),
+
+        },
+
+    )
+
+
 
 
 @app.get("/api/status")
@@ -251,6 +408,148 @@ def get_all_statuses() -> dict:
             timespec="seconds"
         ),
     }
+
+@app.get("/api/status/databases")
+
+def get_database_statuses() -> dict:
+
+    """
+
+    Return cached health information for all databases.
+
+    This endpoint does not connect to SQL Server.
+
+    """
+
+
+
+    return {
+
+        "databases": get_database_cache(),
+
+        "retrieved_at": datetime.now(
+
+            NAIROBI_TIMEZONE
+
+        ).isoformat(timespec="seconds"),
+
+    }
+
+
+
+
+
+@app.get("/api/status/databases/{database_id}")
+
+def get_database_status(
+
+    database_id: str,
+
+) -> dict:
+
+    """
+
+    Return cached health information for one database.
+
+    """
+
+
+
+    cached_database = get_single_database_cache(
+
+        database_id
+
+    )
+
+
+
+    if cached_database is None:
+
+        raise HTTPException(
+
+            status_code=404,
+
+            detail=(
+
+                f"Database '{database_id}' "
+
+                f"was not found"
+
+            ),
+
+        )
+
+
+
+    return cached_database
+
+
+
+
+
+@app.post("/api/check/databases")
+
+def run_database_checks() -> dict:
+
+    """
+
+    Immediately check all configured databases.
+
+    """
+
+
+
+    results = check_all_databases()
+
+
+
+    return {
+
+        "message": "All database checks completed",
+
+        "results": results,
+
+    }
+
+
+
+
+
+@app.post("/api/check/databases/{database_id}")
+
+def run_database_check(
+
+    database_id: str,
+
+) -> dict:
+
+    """
+
+    Immediately check one configured database.
+
+    """
+
+
+
+    try:
+
+        return check_single_database(
+
+            database_id
+
+        )
+
+
+
+    except ValueError as error:
+
+        raise HTTPException(
+
+            status_code=404,
+
+            detail=str(error),
+
+        ) from error
 
 
 @app.get(

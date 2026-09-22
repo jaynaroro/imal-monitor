@@ -18,54 +18,118 @@ NAIROBI_TIMEZONE = ZoneInfo("Africa/Nairobi")
 def current_timestamp() -> str:
     return datetime.now(
         NAIROBI_TIMEZONE
-    ).isoformat(timespec="seconds")
+    ).isoformat(
+        timespec="seconds"
+    )
 
 
 def get_control_config(
     server: dict[str, Any],
 ) -> dict[str, Any]:
+    """
+    Return the Tomcat control configuration
+    for the supplied server.
+    """
+
     control = server.get(
         "application_control",
         {},
     )
 
-    if not control.get("enabled", False):
+    if not control.get(
+        "enabled",
+        False,
+    ):
         raise ValueError(
-            f"Application control is disabled for "
-            f"{server['name']}"
+            "Application control is disabled "
+            f"for {server['name']}"
         )
 
     required_fields = {
         "tomcat_home",
+        "java_home",
         "process_match",
     }
 
-    missing = required_fields - control.keys()
+    missing = (
+        required_fields
+        - control.keys()
+    )
 
     if missing:
         raise ValueError(
             "Missing Tomcat control settings: "
-            + ", ".join(sorted(missing))
+            + ", ".join(
+                sorted(missing)
+            )
         )
 
     return control
 
 
+def build_safe_grep_pattern(
+    process_match: str,
+) -> str:
+    """
+    Build a grep pattern that will not match
+    the grep process itself.
+
+    Example:
+
+        Dcatalina.base=/imal/TomcatNode2
+
+    becomes:
+
+        [D]catalina.base=/imal/TomcatNode2
+    """
+
+    if not process_match:
+        raise ValueError(
+            "process_match cannot be empty"
+        )
+
+    return (
+        f"[{process_match[0]}]"
+        f"{process_match[1:]}"
+    )
+
+
 def get_tomcat_pids(
     server: dict[str, Any],
 ) -> list[int]:
-    control = get_control_config(server)
+    """
+    Return the PID(s) belonging to the configured
+    Tomcat instance.
 
-    process_match = control["process_match"]
+    Uses ps + grep instead of pgrep -f because
+    pgrep -f can match the lookup command itself.
+    """
 
-    command = (
-        "pgrep -f -- "
-        f"'{process_match}' || true"
+    control = get_control_config(
+        server
     )
 
-    stdout, stderr, _ = execute_ssh_command(
-        server,
-        command,
+    process_match = (
+        control["process_match"]
+    )
+
+    grep_pattern = (
+        build_safe_grep_pattern(
+            process_match
+        )
+    )
+
+    command = (
+        "ps -ef | "
+        f"grep -- '{grep_pattern}' | "
+        "awk '{print $2}'"
+    )
+
+    stdout, stderr, exit_code = (
+        execute_ssh_command(
+            server,
+            command,
+        )
     )
 
     pids: list[int] = []
@@ -74,35 +138,82 @@ def get_tomcat_pids(
         value = line.strip()
 
         if value.isdigit():
-            pids.append(int(value))
+            pids.append(
+                int(value)
+            )
+
+    logger.debug(
+        "CONTROL | %s | "
+        "Tomcat PID lookup | PIDs=%s",
+        server["id"],
+        pids,
+    )
 
     return pids
 
 
 def wait_for_tomcat_stop(
     server: dict[str, Any],
-    timeout: int,
+    timeout: int = 10,
 ) -> bool:
-    deadline = time.time() + timeout
+    """
+    Wait until the configured Tomcat process
+    is no longer present.
+    """
+
+    deadline = (
+        time.time()
+        + timeout
+    )
 
     while time.time() < deadline:
-        if not get_tomcat_pids(server):
+        pids = get_tomcat_pids(
+            server
+        )
+
+        if not pids:
             return True
 
-        time.sleep(2)
+        logger.info(
+            "CONTROL | %s | "
+            "waiting for Tomcat to stop | "
+            "PIDs=%s",
+            server["id"],
+            pids,
+        )
+
+        time.sleep(1)
 
     return False
 
 
 def wait_for_tomcat_start(
     server: dict[str, Any],
-    timeout: int,
+    timeout: int = 60,
 ) -> bool:
-    deadline = time.time() + timeout
+    """
+    Wait until the configured Tomcat process
+    appears.
+    """
+
+    deadline = (
+        time.time()
+        + timeout
+    )
 
     while time.time() < deadline:
-        if get_tomcat_pids(server):
+        pids = get_tomcat_pids(
+            server
+        )
+
+        if pids:
             return True
+
+        logger.info(
+            "CONTROL | %s | "
+            "waiting for Tomcat process",
+            server["id"],
+        )
 
         time.sleep(2)
 
@@ -112,146 +223,174 @@ def wait_for_tomcat_start(
 def stop_tomcat(
     server: dict[str, Any],
 ) -> dict[str, Any]:
-    control = get_control_config(server)
+    """
+    Hard-stop Tomcat using kill -9.
 
-    tomcat_home = control["tomcat_home"]
+    This mirrors the tested UAT procedure:
 
-    shutdown_timeout = int(
+        find PID
+        kill -9 PID
+        verify process is gone
+    """
+
+    control = get_control_config(
+        server
+    )
+
+    kill_timeout = int(
         control.get(
-            "shutdown_timeout",
-            30,
+            "kill_timeout",
+            10,
         )
     )
 
-    pids_before = get_tomcat_pids(server)
+    pids_before = get_tomcat_pids(
+        server
+    )
 
     if not pids_before:
+        logger.info(
+            "CONTROL | %s | "
+            "Tomcat already stopped",
+            server["id"],
+        )
+
         return {
             "stopped": True,
             "already_stopped": True,
             "forced": False,
+            "method": "none",
             "pids_before": [],
         }
 
     logger.warning(
-        "CONTROL | %s | Tomcat shutdown requested | PIDs=%s",
+        "CONTROL | %s | "
+        "forcing Tomcat shutdown | "
+        "PIDs=%s",
         server["id"],
         pids_before,
     )
 
-    shutdown_command = (
-        f"cd '{tomcat_home}/bin' "
-        "&& ./shutdown.sh"
-    )
+    killed_pids: list[int] = []
+    disappeared_pids: list[int] = []
 
-    stdout, stderr, exit_code = (
-        execute_ssh_command(
-            server,
-            shutdown_command,
-        )
-    )
-
-    logger.info(
-        "CONTROL | %s | shutdown.sh exit=%s stdout=%s stderr=%s",
-        server["id"],
-        exit_code,
-        stdout.strip(),
-        stderr.strip(),
-    )
-
-    if wait_for_tomcat_stop(
-        server,
-        shutdown_timeout,
-    ):
-        logger.info(
-            "CONTROL | %s | Tomcat stopped gracefully",
-            server["id"],
+    for pid in pids_before:
+        command = (
+            f"if kill -0 {pid} 2>/dev/null; "
+            f"then kill -9 {pid}; "
+            "else echo "
+            f"'PID {pid} already disappeared'; "
+            "fi"
         )
 
-        return {
-            "stopped": True,
-            "already_stopped": False,
-            "forced": False,
-            "pids_before": pids_before,
-        }
-
-    remaining_pids = get_tomcat_pids(server)
-
-    if remaining_pids:
-        logger.warning(
-            "CONTROL | %s | graceful shutdown timed out | "
-            "sending SIGTERM to PIDs=%s",
-            server["id"],
-            remaining_pids,
+        stdout, stderr, exit_code = (
+            execute_ssh_command(
+                server,
+                command,
+            )
         )
 
-        pid_string = " ".join(
-            str(pid)
-            for pid in remaining_pids
+        output = (
+            stderr.strip()
+            or stdout.strip()
         )
 
-        execute_ssh_command(
-            server,
-            f"kill {pid_string}",
-        )
+        if exit_code == 0:
+            if (
+                "already disappeared"
+                in output
+            ):
+                disappeared_pids.append(
+                    pid
+                )
 
-    if wait_for_tomcat_stop(
-        server,
-        10,
-    ):
-        logger.info(
-            "CONTROL | %s | Tomcat stopped after SIGTERM",
-            server["id"],
-        )
+                logger.info(
+                    "CONTROL | %s | "
+                    "PID=%s already disappeared",
+                    server["id"],
+                    pid,
+                )
 
-        return {
-            "stopped": True,
-            "already_stopped": False,
-            "forced": False,
-            "pids_before": pids_before,
-        }
+            else:
+                killed_pids.append(
+                    pid
+                )
 
-    remaining_pids = get_tomcat_pids(server)
+                logger.info(
+                    "CONTROL | %s | "
+                    "kill -9 sent to PID=%s",
+                    server["id"],
+                    pid,
+                )
 
-    if remaining_pids:
-        logger.error(
-            "CONTROL | %s | forcing Tomcat shutdown | PIDs=%s",
-            server["id"],
-            remaining_pids,
-        )
-
-        pid_string = " ".join(
-            str(pid)
-            for pid in remaining_pids
-        )
-
-        execute_ssh_command(
-            server,
-            f"kill -9 {pid_string}",
-        )
+        else:
+            logger.warning(
+                "CONTROL | %s | "
+                "kill -9 returned exit=%s "
+                "for PID=%s | %s",
+                server["id"],
+                exit_code,
+                pid,
+                output,
+            )
 
     if not wait_for_tomcat_stop(
         server,
-        10,
+        timeout=kill_timeout,
     ):
-        raise RuntimeError(
-            "Tomcat could not be stopped"
+        remaining_pids = (
+            get_tomcat_pids(
+                server
+            )
         )
+
+        raise RuntimeError(
+            "Tomcat process still running "
+            "after kill -9: "
+            f"{remaining_pids}"
+        )
+
+    logger.info(
+        "CONTROL | %s | "
+        "Tomcat stopped successfully",
+        server["id"],
+    )
 
     return {
         "stopped": True,
         "already_stopped": False,
         "forced": True,
+        "method": "kill -9",
         "pids_before": pids_before,
+        "killed_pids": killed_pids,
+        "disappeared_pids": (
+            disappeared_pids
+        ),
     }
 
 
 def start_tomcat(
     server: dict[str, Any],
 ) -> dict[str, Any]:
-    control = get_control_config(server)
+    """
+    Start Tomcat using startup.sh.
 
-    tomcat_home = control["tomcat_home"]
+    JAVA_HOME is explicitly exported because
+    SSH control sessions are non-interactive
+    and may not load the user's shell profile.
+    """
+
+    control = get_control_config(
+        server
+    )
+
+    tomcat_home = (
+        control["tomcat_home"]
+    )
+
+    java_home = (
+        control["java_home"]
+    )
 
     startup_timeout = int(
         control.get(
@@ -260,11 +399,21 @@ def start_tomcat(
         )
     )
 
-    existing_pids = get_tomcat_pids(
-        server
+    existing_pids = (
+        get_tomcat_pids(
+            server
+        )
     )
 
     if existing_pids:
+        logger.warning(
+            "CONTROL | %s | "
+            "Tomcat already running | "
+            "PIDs=%s",
+            server["id"],
+            existing_pids,
+        )
+
         return {
             "started": True,
             "already_running": True,
@@ -272,13 +421,20 @@ def start_tomcat(
         }
 
     logger.warning(
-        "CONTROL | %s | starting Tomcat",
+        "CONTROL | %s | "
+        "starting Tomcat | "
+        "JAVA_HOME=%s | "
+        "TOMCAT_HOME=%s",
         server["id"],
+        java_home,
+        tomcat_home,
     )
 
     startup_command = (
-        f"cd '{tomcat_home}/bin' "
-        "&& ./startup.sh"
+        f"export JAVA_HOME='{java_home}'; "
+        "export PATH=\"$JAVA_HOME/bin:$PATH\"; "
+        f"cd '{tomcat_home}/bin' && "
+        "./startup.sh"
     )
 
     stdout, stderr, exit_code = (
@@ -289,26 +445,38 @@ def start_tomcat(
     )
 
     logger.info(
-        "CONTROL | %s | startup.sh exit=%s stdout=%s stderr=%s",
+        "CONTROL | %s | "
+        "startup.sh exit=%s | "
+        "stdout=%s | stderr=%s",
         server["id"],
         exit_code,
         stdout.strip(),
         stderr.strip(),
     )
 
+    if exit_code != 0:
+        raise RuntimeError(
+            "startup.sh failed: "
+            f"{stderr.strip() or stdout.strip()}"
+        )
+
     if not wait_for_tomcat_start(
         server,
-        startup_timeout,
+        timeout=startup_timeout,
     ):
         raise RuntimeError(
             "Tomcat did not start within "
             f"{startup_timeout} seconds"
         )
 
-    pids = get_tomcat_pids(server)
+    pids = get_tomcat_pids(
+        server
+    )
 
     logger.info(
-        "CONTROL | %s | Tomcat started | PIDs=%s",
+        "CONTROL | %s | "
+        "Tomcat started successfully | "
+        "PIDs=%s",
         server["id"],
         pids,
     )
@@ -324,17 +492,49 @@ def wait_for_api_health(
     server: dict[str, Any],
     timeout: int = 90,
 ) -> dict[str, Any]:
-    deadline = time.time() + timeout
+    """
+    Wait until the configured IMAL API reports
+    a healthy response.
+    """
 
-    last_result: dict[str, Any] | None = None
+    deadline = (
+        time.time()
+        + timeout
+    )
+
+    last_result: (
+        dict[str, Any] | None
+    ) = None
+
+    logger.info(
+        "CONTROL | %s | "
+        "waiting for API health",
+        server["id"],
+    )
 
     while time.time() < deadline:
-        last_result = check_account_api(
-            server
+        last_result = (
+            check_account_api(
+                server
+            )
         )
 
-        if last_result.get("healthy"):
+        if last_result.get(
+            "healthy"
+        ):
+            logger.info(
+                "CONTROL | %s | "
+                "API health check successful",
+                server["id"],
+            )
+
             return last_result
+
+        logger.info(
+            "CONTROL | %s | "
+            "API not healthy yet",
+            server["id"],
+        )
 
         time.sleep(5)
 
@@ -343,68 +543,122 @@ def wait_for_api_health(
             "API health check did not run"
         )
 
+    logger.warning(
+        "CONTROL | %s | "
+        "API did not become healthy "
+        "within %s seconds",
+        server["id"],
+        timeout,
+    )
+
     return last_result
 
 
 def restart_tomcat(
     server: dict[str, Any],
 ) -> dict[str, Any]:
-    get_control_config(server)
+    """
+    Hard restart the configured Tomcat instance.
 
-    started_at = current_timestamp()
+    Flow:
+
+        1. Find real Tomcat PID(s)
+        2. kill -9 PID(s)
+        3. Verify Tomcat stopped
+        4. Pause briefly
+        5. Export JAVA_HOME
+        6. Run startup.sh
+        7. Verify new Tomcat PID(s)
+        8. Verify IMAL API health
+    """
+
+    get_control_config(
+        server
+    )
+
+    started_at = (
+        current_timestamp()
+    )
 
     logger.warning(
-        "CONTROL | %s | restart requested",
+        "CONTROL | %s | "
+        "Tomcat hard restart requested",
         server["id"],
     )
 
     try:
-        stop_result = stop_tomcat(
-            server
+        stop_result = (
+            stop_tomcat(
+                server
+            )
         )
 
-        start_result = start_tomcat(
-            server
+        #
+        # Match the tested UAT sequence.
+        #
+        time.sleep(2)
+
+        start_result = (
+            start_tomcat(
+                server
+            )
         )
 
-        api_result = wait_for_api_health(
-            server,
-            timeout=90,
+        api_result = (
+            wait_for_api_health(
+                server,
+                timeout=90,
+            )
         )
 
         success = bool(
-            api_result.get("healthy")
+            api_result.get(
+                "healthy"
+            )
         )
 
         logger.info(
-            "CONTROL | %s | restart completed | api_healthy=%s",
+            "CONTROL | %s | "
+            "restart completed | "
+            "api_healthy=%s",
             server["id"],
             success,
         )
 
         return {
             "success": success,
-            "server_id": server["id"],
-            "server_name": server["name"],
+            "server_id": (
+                server["id"]
+            ),
+            "server_name": (
+                server["name"]
+            ),
             "message": (
                 "Application restarted successfully"
                 if success
                 else (
-                    "Tomcat started but API health "
-                    "check did not return Success"
+                    "Tomcat restarted but API "
+                    "health check did not return "
+                    "Success"
                 )
             ),
             "stop": stop_result,
             "start": start_result,
             "api": {
-                "healthy": api_result.get(
-                    "healthy"
+                "healthy": (
+                    api_result.get(
+                        "healthy"
+                    )
                 ),
-                "status_desc": api_result.get(
-                    "status_desc"
+                "status_desc": (
+                    api_result.get(
+                        "status_desc"
+                    )
                 ),
-                "http_status": api_result.get(
-                    "http_status"
+                "http_status": (
+                    api_result.get(
+                        "http_status"
+                    )
                 ),
                 "response_time_ms": (
                     api_result.get(
@@ -412,21 +666,36 @@ def restart_tomcat(
                     )
                 ),
             },
-            "started_at": started_at,
-            "completed_at": current_timestamp(),
+            "started_at": (
+                started_at
+            ),
+            "completed_at": (
+                current_timestamp()
+            ),
         }
 
     except Exception as exception:
         logger.exception(
-            "CONTROL | %s | restart failed",
+            "CONTROL | %s | "
+            "restart failed",
             server["id"],
         )
 
         return {
             "success": False,
-            "server_id": server["id"],
-            "server_name": server["name"],
-            "message": str(exception),
-            "started_at": started_at,
-            "completed_at": current_timestamp(),
+            "server_id": (
+                server["id"]
+            ),
+            "server_name": (
+                server["name"]
+            ),
+            "message": str(
+                exception
+            ),
+            "started_at": (
+                started_at
+            ),
+            "completed_at": (
+                current_timestamp()
+            ),
         }

@@ -35,3 +35,20 @@ Thumbs.db
 # Generated deployment packages
 imal-monitor-*.tar.gz
 imal-monitor-deploy-*.tar.gz
+
+
+
+# Local backups / working files
+
+*.before-*
+
+*.bak
+
+*.tmp
+
+
+
+# Local test scripts
+
+tomcat_restart_test.sh
+

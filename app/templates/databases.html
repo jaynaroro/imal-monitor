@@ -1,0 +1,724 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>{{ title }}</title>
+
+    <link
+        rel="stylesheet"
+        href="/static/dashboard.css"
+    >
+</head>
+
+<body>
+
+    <header class="page-header">
+
+        <div class="header-copy">
+
+            <p class="eyebrow">
+                Infrastructure monitoring
+            </p>
+
+            <h1>
+                {{ title }}
+            </h1>
+
+            <p class="subtitle">
+                Microsoft SQL Server connectivity
+                and database health
+            </p>
+
+
+            <nav class="portal-nav">
+
+
+
+    <a
+
+        href="/"
+
+        class="portal-nav-item"
+
+    >
+
+        <span class="nav-status-dot
+
+            {% if summary.servers.all_healthy %}
+
+                nav-healthy
+
+            {% else %}
+
+                nav-warning
+
+            {% endif %}
+
+        "></span>
+
+
+
+        <span>
+
+            IMAL Servers
+
+        </span>
+
+
+
+        <strong>
+
+            {{ summary.servers.healthy }}
+
+            /
+
+            {{ summary.servers.total }}
+
+            Healthy
+
+        </strong>
+
+    </a>
+
+
+
+
+
+    <a
+
+        href="/databases"
+
+        class="portal-nav-item active"
+
+    >
+
+        <span class="nav-status-dot
+
+            {% if summary.databases.all_healthy %}
+
+                nav-healthy
+
+            {% else %}
+
+                nav-warning
+
+            {% endif %}
+
+        "></span>
+
+
+
+        <span>
+
+            Databases
+
+        </span>
+
+
+
+        <strong>
+
+            {{ summary.databases.healthy }}
+
+            /
+
+            {{ summary.databases.total }}
+
+            Healthy
+
+        </strong>
+
+    </a>
+
+
+
+</nav>
+
+        </div>
+
+
+        <div class="header-actions">
+
+            <div class="refresh-information">
+
+                <div class="application-status">
+                    <span class="status-dot"></span>
+                    Dashboard running
+                </div>
+
+                <div class="refresh-schedule">
+
+                    <span>
+                        Auto refresh:
+                        {{ scheduler.interval_minutes }}
+                        minutes
+                    </span>
+
+                    <span id="next-refresh-label">
+                        Next DB check:
+                        {{
+                            scheduler.database_next_run_at
+                            or "Not scheduled"
+                        }}
+                    </span>
+
+                </div>
+
+            </div>
+
+
+            <button
+                id="refresh-all-button"
+                class="refresh-button"
+                type="button"
+                onclick="refreshAllDatabases()"
+            >
+                Refresh all
+            </button>
+
+        </div>
+
+    </header>
+
+
+    <main class="dashboard-container">
+
+        <section class="server-grid">
+
+            {% for db in databases %}
+
+            <article class="server-card">
+
+                <div class="server-card-header">
+
+                    <div>
+
+                        <p class="server-id">
+                            {{ db.id }}
+                        </p>
+
+                        <h2>
+                            {{ db.name }}
+                        </h2>
+
+                        <div class="server-address">
+                            {{ db.host }}:{{ db.port }}
+                        </div>
+
+                    </div>
+
+
+                    <div class="server-header-actions">
+
+                        <span class="status {{ db.status }}">
+                            {{ db.status }}
+                        </span>
+
+
+                        <button
+                            id="refresh-{{ db.id }}"
+                            class="server-refresh-button"
+                            type="button"
+                            onclick="refreshDatabase(
+                                '{{ db.id }}'
+                            )"
+                            title="Refresh {{ db.name }}"
+                        >
+                            Refresh
+                        </button>
+
+                    </div>
+
+                </div>
+
+
+                <div class="metric-section">
+
+                    <div class="section-title">
+
+                        <h3>
+                            Database Health
+                        </h3>
+
+                        <span class="status {{ db.status }}">
+                            {{ db.status }}
+                        </span>
+
+                    </div>
+
+
+                    <div class="metric-row">
+
+                        <span>
+                            Connection
+                        </span>
+
+                        <strong>
+                            {% if db.connection == "healthy" %}
+                                Healthy
+                            {% elif db.connection == "failed" %}
+                                Failed
+                            {% else %}
+                                Pending
+                            {% endif %}
+                        </strong>
+
+                    </div>
+
+
+                    <div class="metric-row">
+
+                        <span>
+                            Query
+                        </span>
+
+                        <strong>
+                            {% if db.query_status == "success" %}
+                                Success
+                            {% elif db.query_status == "failed" %}
+                                Failed
+                            {% else %}
+                                Pending
+                            {% endif %}
+                        </strong>
+
+                    </div>
+
+
+                    <div class="metric-row">
+
+                        <span>
+                            Response time
+                        </span>
+
+                        <strong>
+                            {% if db.response_time_ms is not none %}
+                                {{ db.response_time_ms }} ms
+                            {% else %}
+                                -
+                            {% endif %}
+                        </strong>
+
+                    </div>
+
+
+                    <div class="metric-row">
+
+                        <span>
+                            Last checked
+                        </span>
+
+                        <strong>
+                            {{ db.checked_at or "Not checked" }}
+                        </strong>
+
+                    </div>
+
+
+                    {% if db.error %}
+
+                    <div class="error-box">
+                        {{ db.error }}
+                    </div>
+
+                    {% endif %}
+
+                </div>
+
+
+                <div class="metric-section">
+
+                    <div class="section-title">
+
+                        <h3>
+                            Database Details
+                        </h3>
+
+                    </div>
+
+
+                    <div class="metric-row">
+
+                        <span>
+                            Database
+                        </span>
+
+                        <strong>
+                            {{ db.database }}
+                        </strong>
+
+                    </div>
+
+
+                    <div class="metric-row">
+
+                        <span>
+                            DB type
+                        </span>
+
+                        <strong>
+                            Microsoft SQL Server
+                        </strong>
+
+                    </div>
+
+
+                    <div class="metric-row">
+
+                        <span>
+                            Host
+                        </span>
+
+                        <strong>
+                            {{ db.host }}
+                        </strong>
+
+                    </div>
+
+
+                    <div class="metric-row">
+
+                        <span>
+                            Port
+                        </span>
+
+                        <strong>
+                            {{ db.port }}
+                        </strong>
+
+                    </div>
+
+                </div>
+
+            </article>
+
+            {% endfor %}
+
+        </section>
+
+    </main>
+
+
+    <script>
+
+        const STATUS_POLL_INTERVAL_MS = 30000;
+
+        let lastKnownCheckTimestamp =
+            getLatestCheckTimestamp();
+
+
+        function getLatestCheckTimestamp() {
+
+            const timestamps = [];
+
+            {% for db in databases %}
+
+                {% if db.checked_at %}
+
+                    timestamps.push(
+                        "{{ db.checked_at }}"
+                    );
+
+                {% endif %}
+
+            {% endfor %}
+
+
+            if (timestamps.length === 0) {
+                return null;
+            }
+
+
+            timestamps.sort();
+
+
+            return timestamps[
+                timestamps.length - 1
+            ];
+
+        }
+
+
+        function getLatestTimestampFromStatus(
+            data
+        ) {
+
+            const timestamps = [];
+
+
+            (
+                data.databases || []
+            ).forEach((database) => {
+
+                if (database.checked_at) {
+
+                    timestamps.push(
+                        database.checked_at
+                    );
+
+                }
+
+            });
+
+
+            if (timestamps.length === 0) {
+                return null;
+            }
+
+
+            timestamps.sort();
+
+
+            return timestamps[
+                timestamps.length - 1
+            ];
+
+        }
+
+
+        function setButtonLoading(
+            button,
+            isLoading,
+            loadingText = "Checking..."
+        ) {
+
+            if (!button) {
+                return;
+            }
+
+
+            if (isLoading) {
+
+                button.dataset.originalText =
+                    button.textContent.trim();
+
+                button.disabled = true;
+
+                button.textContent =
+                    loadingText;
+
+                return;
+
+            }
+
+
+            button.disabled = false;
+
+            button.textContent =
+                button.dataset.originalText
+                || "Refresh";
+
+        }
+
+
+        async function runRefresh(
+            url,
+            button
+        ) {
+
+            setButtonLoading(
+                button,
+                true
+            );
+
+
+            try {
+
+                const response =
+                    await fetch(
+                        url,
+                        {
+                            method: "POST",
+                            headers: {
+                                "Accept":
+                                    "application/json"
+                            }
+                        }
+                    );
+
+
+                if (!response.ok) {
+
+                    let errorMessage =
+                        `HTTP ${response.status}`;
+
+
+                    try {
+
+                        const errorData =
+                            await response.json();
+
+
+                        if (errorData.detail) {
+
+                            errorMessage =
+                                typeof errorData.detail
+                                === "string"
+                                ? errorData.detail
+                                : JSON.stringify(
+                                    errorData.detail
+                                );
+
+                        }
+
+                    } catch (_) {
+                    }
+
+
+                    throw new Error(
+                        errorMessage
+                    );
+
+                }
+
+
+                await response.json();
+
+                window.location.reload();
+
+            } catch (error) {
+
+                console.error(
+                    "Database refresh failed:",
+                    error
+                );
+
+
+                alert(
+                    `Refresh failed: ${error.message}`
+                );
+
+
+                setButtonLoading(
+                    button,
+                    false
+                );
+
+            }
+
+        }
+
+
+        function refreshAllDatabases() {
+
+            const button =
+                document.getElementById(
+                    "refresh-all-button"
+                );
+
+
+            runRefresh(
+                "/api/check/databases",
+                button
+            );
+
+        }
+
+
+        function refreshDatabase(
+            databaseId
+        ) {
+
+            const button =
+                document.getElementById(
+                    `refresh-${databaseId}`
+                );
+
+
+            runRefresh(
+                `/api/check/databases/${databaseId}`,
+                button
+            );
+
+        }
+
+
+        async function pollForUpdatedStatus() {
+
+            try {
+
+                const response =
+                    await fetch(
+                        "/api/status/databases",
+                        {
+                            method: "GET",
+                            headers: {
+                                "Accept":
+                                    "application/json"
+                            },
+                            cache: "no-store"
+                        }
+                    );
+
+
+                if (!response.ok) {
+                    return;
+                }
+
+
+                const data =
+                    await response.json();
+
+
+                const latestTimestamp =
+                    getLatestTimestampFromStatus(
+                        data
+                    );
+
+
+                if (
+                    latestTimestamp
+                    && lastKnownCheckTimestamp
+                    && latestTimestamp
+                        !== lastKnownCheckTimestamp
+                ) {
+
+                    window.location.reload();
+
+                    return;
+
+                }
+
+
+                if (
+                    latestTimestamp
+                    && !lastKnownCheckTimestamp
+                ) {
+
+                    lastKnownCheckTimestamp =
+                        latestTimestamp;
+
+                    window.location.reload();
+
+                }
+
+            } catch (error) {
+
+                console.warn(
+                    "Could not poll database status:",
+                    error
+                );
+
+            }
+
+        }
+
+
+        window.setInterval(
+            pollForUpdatedStatus,
+            STATUS_POLL_INTERVAL_MS
+        );
+
+
+        pollForUpdatedStatus();
+
+    </script>
+
+</body>
+</html>
